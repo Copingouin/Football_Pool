@@ -1,6 +1,7 @@
 # Virtual environments
 venv/
 FootballPool/
+.env
 .env/
 
 # Python cache

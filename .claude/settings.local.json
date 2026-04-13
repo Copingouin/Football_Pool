@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(/c/Users/cedri/Documents/Football/FootballPool/Scripts/python.exe -m django --version)",
+      "Bash(/c/Users/cedri/Documents/Football/FootballPool/Scripts/python.exe -m django startproject nfl_pool)",
+      "Bash(/c/Users/cedri/Documents/Football/FootballPool/Scripts/python.exe manage.py startapp accounts)",
+      "Bash(/c/Users/cedri/Documents/Football/FootballPool/Scripts/python.exe manage.py startapp pool)",
+      "Bash(mkdir -p /c/Users/cedri/Documents/Football/nfl_pool/accounts/templates/accounts)",
+      "Bash(mkdir -p /c/Users/cedri/Documents/Football/nfl_pool/pool/templates/pool)",
+      "Bash(/c/Users/cedri/Documents/Football/FootballPool/Scripts/python.exe:*)",
+      "Bash(git check-ignore:*)"
+    ]
+  }
+}
