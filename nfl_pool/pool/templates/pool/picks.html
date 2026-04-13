@@ -1,0 +1,239 @@
+{% extends "pool/base.html" %}
+{% load pool_extras %}
+
+{% block title %}Week {{ week.week_number }} Picks — NFL Pool{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2 class="mb-0">{{ week }} — Your Picks</h2>
+  <span class="badge fs-6
+    {% if week.status == 'open' %}bg-success
+    {% elif week.status == 'locked' %}bg-warning text-dark
+    {% else %}bg-secondary{% endif %}">
+    {{ week.get_status_display }}
+  </span>
+</div>
+
+{% if user_week_locked %}
+  <div class="alert alert-info">
+    Your picks for this week are locked.
+    <a href="{% url 'pool:results' week.id %}">View results &rarr;</a>
+  </div>
+{% endif %}
+
+<form method="post" id="picks-form">
+  {% csrf_token %}
+
+  {% if form.non_field_errors %}
+    <div class="alert alert-danger">
+      {% for error in form.non_field_errors %}{{ error }}<br>{% endfor %}
+    </div>
+  {% endif %}
+
+  <div class="card shadow-sm">
+    <div class="table-responsive">
+      <table class="table align-middle mb-0" id="picks-table">
+        <thead class="table-dark">
+          <tr>
+            <th>Kickoff</th>
+            <th>Matchup</th>
+            <th>
+              Odds
+              <button type="button"
+                      class="btn btn-sm btn-outline-light py-0 px-1 ms-1"
+                      data-bs-toggle="popover"
+                      data-bs-trigger="focus"
+                      data-bs-placement="right"
+                      data-bs-html="true"
+                      data-bs-title="How to read NFL odds"
+                      data-bs-content="
+                        <strong>Spread (e.g. KC&nbsp;&#8209;3.5)</strong><br>
+                        Kansas City is favored to win by more than 3.5 points.
+                        A negative number = that team is the favorite.<br><br>
+                        <strong>Moneyline (e.g. KC&nbsp;&#8209;180 / BAL&nbsp;+155)</strong><br>
+                        &#8209;180: you bet $180 to win $100 (KC is the favorite).<br>
+                        +155: you bet $100 to win $155 (BAL is the underdog).<br><br>
+                        The closer to even (±100), the more evenly matched the game.
+                      ">
+                &#9432;
+              </button>
+            </th>
+            <th>Winner</th>
+            <th style="width:140px">Confidence</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for game in games %}
+            {% with pick=existing_picks|get_item:game.id game_locked=game.is_locked %}
+            <tr class="pick-row {% if game_locked %}locked{% endif %}"
+                data-game-id="{{ game.id }}">
+
+              <td class="text-nowrap">
+                {{ game.kickoff|date:"D M j, g:i A T" }}
+                {% if game_locked %}
+                  <span class="badge bg-secondary ms-1">Locked</span>
+                {% endif %}
+              </td>
+
+              <td>
+                <strong>{{ game.away_team }}</strong>
+                <span class="text-muted"> @ </span>
+                <strong>{{ game.home_team }}</strong>
+              </td>
+
+              {# Odds column #}
+              <td class="text-nowrap small">
+                {% if game.has_odds %}
+                  {% if game.home_spread is not None %}
+                    <div class="fw-semibold">{{ game.spread_display }}</div>
+                  {% endif %}
+                  <div class="text-muted">
+                    {{ game.away_team|truncatechars:4 }} {{ game.away_moneyline_display }}
+                    &nbsp;/&nbsp;
+                    {{ game.home_team|truncatechars:4 }} {{ game.home_moneyline_display }}
+                  </div>
+                  {% if game.odds_updated_at %}
+                    <div class="text-muted" style="font-size:0.7em">
+                      updated {{ game.odds_updated_at|timesince }} ago
+                    </div>
+                  {% endif %}
+                {% else %}
+                  <span class="text-muted">—</span>
+                {% endif %}
+              </td>
+
+              {# Winner column #}
+              <td>
+                {% if game_locked or user_week_locked %}
+                  {% if pick %}
+                    <span class="badge bg-dark">
+                      {% if pick.predicted_winner == 'home' %}{{ game.home_team }}
+                      {% else %}{{ game.away_team }}{% endif %}
+                    </span>
+                  {% else %}
+                    <span class="text-muted">—</span>
+                  {% endif %}
+                {% else %}
+                  <div class="d-flex gap-3">
+                    <div class="form-check">
+                      <input class="form-check-input" type="radio"
+                             name="winner_{{ game.id }}"
+                             id="away_{{ game.id }}"
+                             value="away"
+                             {% if pick and pick.predicted_winner == 'away' %}checked{% endif %}>
+                      <label class="form-check-label" for="away_{{ game.id }}">
+                        {{ game.away_team }}
+                      </label>
+                    </div>
+                    <div class="form-check">
+                      <input class="form-check-input" type="radio"
+                             name="winner_{{ game.id }}"
+                             id="home_{{ game.id }}"
+                             value="home"
+                             {% if pick and pick.predicted_winner == 'home' %}checked{% endif %}>
+                      <label class="form-check-label" for="home_{{ game.id }}">
+                        {{ game.home_team }}
+                      </label>
+                    </div>
+                  </div>
+                {% endif %}
+              </td>
+
+              {# Confidence column #}
+              <td>
+                {% if game_locked or user_week_locked %}
+                  {% if pick %}
+                    <span class="badge bg-primary fs-6">{{ pick.confidence_points }}</span>
+                  {% else %}
+                    <span class="text-muted">—</span>
+                  {% endif %}
+                {% else %}
+                  <select name="confidence_{{ game.id }}"
+                          class="form-select confidence-select"
+                          data-game-id="{{ game.id }}">
+                    <option value="">—</option>
+                    {% for n in confidence_range %}
+                      <option value="{{ n }}"
+                        {% if pick and pick.confidence_points == n %}selected{% endif %}>
+                        {{ n }}
+                      </option>
+                    {% endfor %}
+                  </select>
+                {% endif %}
+              </td>
+
+            </tr>
+            {% endwith %}
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {% if not user_week_locked %}
+    <div class="mt-3 d-flex gap-2 align-items-center flex-wrap">
+      <button type="submit" name="_save" class="btn btn-outline-dark">
+        Save Draft
+      </button>
+      <button type="submit" name="_submit_lock" id="submit-lock-btn" class="btn btn-dark">
+        Submit &amp; Lock All Picks
+      </button>
+      <span id="duplicate-warning" class="text-danger" style="display:none;">
+        Duplicate confidence values detected.
+      </span>
+    </div>
+    <p class="text-muted mt-2 small">
+      <strong>Save Draft</strong> saves without locking — you can keep editing until a game kicks off.
+      <strong>Submit &amp; Lock</strong> is permanent and requires all 16 values (1–16) to be set.
+    </p>
+  {% endif %}
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  function checkDuplicates() {
+    const selects = [...document.querySelectorAll('select.confidence-select')];
+    const values = selects.map(s => s.value).filter(v => v !== '' && v !== '—');
+    const hasDupes = values.length !== new Set(values).size;
+
+    const warning = document.getElementById('duplicate-warning');
+    const lockBtn = document.getElementById('submit-lock-btn');
+    if (warning) warning.style.display = hasDupes ? 'inline' : 'none';
+    if (lockBtn) lockBtn.disabled = hasDupes;
+
+    selects.forEach(sel => {
+      const isDupe = sel.value !== '' && values.filter(v => v === sel.value).length > 1;
+      sel.classList.toggle('is-invalid', isDupe);
+    });
+  }
+
+  document.querySelectorAll('select.confidence-select').forEach(s => {
+    s.addEventListener('change', checkDuplicates);
+  });
+
+  // Run on load to flag any pre-existing duplicates
+  checkDuplicates();
+
+  // Warn before locking
+  document.getElementById('submit-lock-btn')?.addEventListener('click', e => {
+    const selects = [...document.querySelectorAll('select.confidence-select')];
+    const allFilled = selects.every(s => s.value !== '' && s.value !== '—');
+
+    const unlockedRows = [...document.querySelectorAll('tr.pick-row:not(.locked)')];
+    const allPicked = unlockedRows.every(row => {
+      const gid = row.dataset.gameId;
+      return document.querySelector(`input[name="winner_${gid}"]:checked`);
+    });
+
+    if (!allFilled || !allPicked) {
+      e.preventDefault();
+      alert('Please set a winner and confidence value for every unlocked game before locking.');
+      return;
+    }
+    if (!confirm('Lock all picks? This cannot be undone.')) {
+      e.preventDefault();
+    }
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,95 @@
+{% extends "pool/base.html" %}
+{% load pool_extras %}
+
+{% block title %}Week {{ week.week_number }} Results — NFL Pool{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2 class="mb-0">{{ week }} — Results</h2>
+  <a href="{% url 'pool:leaderboard' %}" class="btn btn-outline-dark btn-sm">
+    &larr; Leaderboard
+  </a>
+</div>
+
+<div class="card shadow-sm mb-4">
+  <div class="table-responsive">
+    <table class="table table-bordered align-middle mb-0 small">
+      <thead class="table-dark">
+        <tr>
+          <th>Game</th>
+          <th>Result</th>
+          {% for player in players %}
+            <th class="text-center {% if player == request.user %}table-warning{% endif %}">
+              {{ player.username }}
+            </th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for game in games %}
+          <tr>
+            <td class="text-nowrap">
+              <strong>{{ game.away_team }}</strong>
+              <span class="text-muted"> @ </span>
+              <strong>{{ game.home_team }}</strong>
+              <br>
+              <small class="text-muted">{{ game.kickoff|date:"M j" }}</small>
+            </td>
+            <td>
+              {% if game.winner %}
+                <span class="badge bg-dark">
+                  {% if game.winner == 'home' %}{{ game.home_team }}
+                  {% else %}{{ game.away_team }}{% endif %}
+                </span>
+              {% else %}
+                <span class="text-muted">TBD</span>
+              {% endif %}
+            </td>
+            {% for player in players %}
+              {% with pick=picks_by_game|get_item:game.id|get_item:player.id %}
+                <td class="text-center
+                  {% if pick %}
+                    {% if game.winner %}
+                      {% if pick.is_correct %}table-success{% else %}table-danger{% endif %}
+                    {% endif %}
+                  {% endif %}
+                  {% if player == request.user %}fw-bold{% endif %}">
+                  {% if pick %}
+                    <div>
+                      {% if pick.predicted_winner == 'home' %}
+                        {{ game.home_team }}
+                      {% else %}
+                        {{ game.away_team }}
+                      {% endif %}
+                    </div>
+                    <span class="badge bg-primary">{{ pick.confidence_points }}</span>
+                    {% if game.winner %}
+                      {% if pick.is_correct %}
+                        <span class="badge bg-success">+{{ pick.confidence_points }}</span>
+                      {% else %}
+                        <span class="badge bg-danger">0</span>
+                      {% endif %}
+                    {% endif %}
+                  {% else %}
+                    <span class="text-muted">—</span>
+                  {% endif %}
+                </td>
+              {% endwith %}
+            {% endfor %}
+          </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot class="table-secondary fw-bold">
+        <tr>
+          <td colspan="2">Week Total</td>
+          {% for player in players %}
+            <td class="text-center {% if player == request.user %}table-warning{% endif %}">
+              {{ week_scores|get_item:player.id|default:"0" }}
+            </td>
+          {% endfor %}
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+</div>
+{% endblock %}
