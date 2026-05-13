@@ -2,17 +2,21 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.core.exceptions import ValidationError
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 from django.utils import timezone
 
 
 class Season(models.Model):
     year = models.IntegerField(unique=True)
+    is_test = models.BooleanField(default=False)
 
     class Meta:
         ordering = ['-year']
 
     def __str__(self):
-        return f"NFL {self.year} Season"
+        label = ' [TEST]' if self.is_test else ''
+        return f"NFL {self.year} Season{label}"
 
 
 class Week(models.Model):
@@ -154,3 +158,24 @@ class Score(models.Model):
 
     def __str__(self):
         return f"{self.user.username} — {self.week} — {self.points}pts"
+
+
+def recalculate_week_scores(week):
+    """Recompute Score rows for every user who has picks in the given week."""
+    users = User.objects.filter(picks__week=week).distinct()
+    for user in users:
+        points = sum(
+            pick.points_earned
+            for pick in Pick.objects.filter(user=user, week=week)
+        )
+        Score.objects.update_or_create(
+            user=user,
+            week=week,
+            defaults={'points': points},
+        )
+
+
+@receiver(post_save, sender=Game)
+def game_winner_saved(sender, instance, **kwargs):
+    if instance.winner is not None:
+        recalculate_week_scores(instance.week)

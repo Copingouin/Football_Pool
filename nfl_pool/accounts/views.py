@@ -8,14 +8,14 @@ from .forms import RegisterForm
 def home(request):
     """/ — login page if logged out; redirect to leaderboard if logged in."""
     if request.user.is_authenticated:
-        return redirect('pool:leaderboard')
+        return redirect('pool:home')
 
     form = AuthenticationForm()
     if request.method == 'POST':
         form = AuthenticationForm(data=request.POST)
         if form.is_valid():
             login(request, form.get_user())
-            return redirect('pool:leaderboard')
+            return redirect('pool:home')
 
     return render(request, 'accounts/login.html', {'form': form})
 
@@ -23,7 +23,7 @@ def home(request):
 def register(request):
     """/register/ — create a new account."""
     if request.user.is_authenticated:
-        return redirect('pool:leaderboard')
+        return redirect('pool:home')
 
     form = RegisterForm()
     if request.method == 'POST':
@@ -32,7 +32,7 @@ def register(request):
             user = form.save()
             login(request, user)
             messages.success(request, f'Welcome, {user.username}! Your account has been created.')
-            return redirect('pool:leaderboard')
+            return redirect('pool:home')
 
     return render(request, 'accounts/register.html', {'form': form})
 

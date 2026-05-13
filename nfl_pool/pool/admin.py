@@ -1,11 +1,12 @@
+import random
 from django.contrib import admin
-from django.utils import timezone
 from .models import Season, Week, Game, Pick, Score
 
 
 @admin.register(Season)
 class SeasonAdmin(admin.ModelAdmin):
-    list_display = ('year',)
+    list_display = ('year', 'is_test')
+    list_editable = ('is_test',)
 
 
 class GameInline(admin.TabularInline):
@@ -14,12 +15,31 @@ class GameInline(admin.TabularInline):
     fields = ('away_team', 'home_team', 'kickoff', 'winner')
 
 
+@admin.action(description='Simulate results (test seasons only)')
+def simulate_results(modeladmin, request, queryset):
+    for week in queryset:
+        if not week.season.is_test:
+            modeladmin.message_user(
+                request,
+                f'{week}: skipped — not a test season.',
+                level='warning',
+            )
+            continue
+        count = 0
+        for game in week.games.filter(winner__isnull=True):
+            game.winner = random.choice([Game.WINNER_HOME, Game.WINNER_AWAY])
+            game.save()
+            count += 1
+        modeladmin.message_user(request, f'{week}: simulated {count} game(s).')
+
+
 @admin.register(Week)
 class WeekAdmin(admin.ModelAdmin):
     list_display = ('__str__', 'status')
     list_filter = ('season', 'status')
     list_editable = ('status',)
     inlines = [GameInline]
+    actions = [simulate_results]
 
 
 @admin.register(Game)

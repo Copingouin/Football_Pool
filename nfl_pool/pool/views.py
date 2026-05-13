@@ -2,11 +2,82 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.contrib import messages
-from django.db.models import Sum
+from django.db.models import Sum, Q
 from django.utils import timezone
 
-from .models import Week, Game, Pick, Score, Season
+from .models import Season, Week, Game, Pick, Score
 from .forms import PicksForm
+
+
+@login_required
+def home(request):
+    """/seasons/ — list all seasons with the player's status in each."""
+    seasons = Season.objects.prefetch_related('weeks').order_by('-year')
+
+    # User's total points per season
+    user_points_by_season = {
+        row['week__season_id']: row['total']
+        for row in Score.objects.filter(user=request.user)
+            .values('week__season_id')
+            .annotate(total=Sum('points'))
+    }
+
+    # Seasons the user has at least one pick in
+    joined_seasons = set(
+        Pick.objects.filter(user=request.user)
+            .values_list('week__season_id', flat=True)
+            .distinct()
+    )
+
+    season_data = []
+    for season in seasons:
+        open_week = season.weeks.filter(status=Week.STATUS_OPEN).first()
+        season_data.append({
+            'season': season,
+            'user_points': user_points_by_season.get(season.id),
+            'joined': season.id in joined_seasons,
+            'open_week': open_week,
+        })
+
+    return render(request, 'pool/home.html', {'season_data': season_data})
+
+
+@login_required
+def season(request, season_id):
+    """/season/<id>/ — per-season leaderboard and week list."""
+    s = get_object_or_404(Season, pk=season_id)
+
+    # Leaderboard: all users who picked in this season, ranked by season total
+    players = (
+        User.objects.filter(picks__week__season=s)
+        .distinct()
+        .annotate(
+            season_points=Sum('scores__points', filter=Q(scores__week__season=s))
+        )
+        .order_by('-season_points')
+    )
+
+    # Weeks with the user's score and open-week flag
+    weeks = s.weeks.order_by('week_number')
+    user_scores = {
+        row['week_id']: row['points']
+        for row in Score.objects.filter(user=request.user, week__season=s)
+            .values('week_id', 'points')
+    }
+
+    week_data = []
+    for week in weeks:
+        week_data.append({
+            'week': week,
+            'user_points': user_scores.get(week.id),
+        })
+
+    context = {
+        'season': s,
+        'players': players,
+        'week_data': week_data,
+    }
+    return render(request, 'pool/season.html', context)
 
 
 @login_required
@@ -16,17 +87,13 @@ def picks(request, week_id):
     games = list(week.games.order_by('kickoff'))
     now = timezone.now()
 
-    # Games past kickoff are auto-locked regardless of pick status
     locked_game_ids = {g.id for g in games if g.is_locked}
 
-    # Existing picks for this user/week
     existing_picks = {
         p.game_id: p
         for p in Pick.objects.filter(user=request.user, week=week).select_related('game')
     }
 
-    # A user's week is considered "fully locked" if they hit Submit, or if the
-    # admin has locked/completed the week, or if every pick they have is locked.
     user_week_locked = week.is_fully_locked or (
         len(existing_picks) == len(games)
         and all(p.locked for p in existing_picks.values())
@@ -41,7 +108,6 @@ def picks(request, week_id):
 
             for game in games:
                 if game.id in locked_game_ids:
-                    # Auto-lock any existing pick for this game
                     if game.id in existing_picks and not existing_picks[game.id].locked:
                         existing_picks[game.id].locked = True
                         existing_picks[game.id].save(update_fields=['locked'])
@@ -74,7 +140,6 @@ def picks(request, week_id):
                 messages.success(request, 'Picks saved.')
             return redirect('pool:picks', week_id=week_id)
     else:
-        # Pre-populate with existing picks
         initial = {}
         for game in games:
             pick = existing_picks.get(game.id)
@@ -97,35 +162,6 @@ def picks(request, week_id):
 
 
 @login_required
-def leaderboard(request):
-    """/leaderboard/ — all-time standings + current week rank."""
-    players = (
-        User.objects.filter(is_active=True, is_staff=False)
-        .annotate(total_points=Sum('scores__points'))
-        .order_by('-total_points')
-    )
-
-    # Find the most recent open or locked week to show current-week rank
-    current_week = (
-        Week.objects.filter(status__in=[Week.STATUS_OPEN, Week.STATUS_LOCKED])
-        .order_by('-season__year', '-week_number')
-        .first()
-    )
-
-    current_week_scores = {}
-    if current_week:
-        for score in Score.objects.filter(week=current_week).select_related('user'):
-            current_week_scores[score.user_id] = score.points
-
-    context = {
-        'players': players,
-        'current_week': current_week,
-        'current_week_scores': current_week_scores,
-    }
-    return render(request, 'pool/leaderboard.html', context)
-
-
-@login_required
 def results(request, week_id):
     """/week/<week_id>/results/ — visible only after a player's picks are locked."""
     week = get_object_or_404(Week, pk=week_id)
@@ -143,7 +179,6 @@ def results(request, week_id):
         )
         return redirect('pool:picks', week_id=week_id)
 
-    # Build a lookup: game_id -> {user_id -> pick}
     all_picks = Pick.objects.filter(week=week).select_related('user', 'game')
     picks_by_game = {}
     for pick in all_picks:

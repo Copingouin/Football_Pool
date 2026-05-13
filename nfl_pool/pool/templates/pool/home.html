@@ -1,0 +1,53 @@
+{% extends "pool/base.html" %}
+
+{% block title %}Seasons — NFL Pool{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">Seasons</h2>
+
+{% if not season_data %}
+  <p class="text-muted">No seasons available yet.</p>
+{% else %}
+  <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4">
+    {% for entry in season_data %}
+      {% with season=entry.season %}
+      <div class="col">
+        <div class="card h-100 shadow-sm">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <span class="fw-bold fs-5">{{ season.year }} Season</span>
+            {% if season.is_test %}
+              <span class="badge bg-warning text-dark">TEST</span>
+            {% endif %}
+          </div>
+          <div class="card-body">
+            {% if entry.joined %}
+              <p class="mb-1 text-muted small">Your points</p>
+              <p class="fs-4 fw-bold mb-3">{{ entry.user_points|default:"0" }}</p>
+            {% else %}
+              <p class="text-muted mb-3">You haven't joined this season yet.</p>
+            {% endif %}
+
+            {% if entry.open_week %}
+              <p class="mb-0">
+                <span class="badge bg-success">Open</span>
+                Week {{ entry.open_week.week_number }} is accepting picks
+              </p>
+            {% else %}
+              <p class="mb-0 text-muted small">No open weeks</p>
+            {% endif %}
+          </div>
+          <div class="card-footer d-flex gap-2">
+            <a href="{% url 'pool:season' season.id %}" class="btn btn-outline-secondary btn-sm">Standings</a>
+            {% if entry.open_week %}
+              <a href="{% url 'pool:picks' entry.open_week.id %}" class="btn btn-sm {% if entry.joined %}btn-primary{% else %}btn-success{% endif %}">
+                {% if entry.joined %}Continue{% else %}Join{% endif %}
+              </a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      {% endwith %}
+    {% endfor %}
+  </div>
+{% endif %}
+{% endblock %}

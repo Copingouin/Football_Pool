@@ -1,0 +1,87 @@
+{% extends "pool/base.html" %}
+{% load pool_extras %}
+
+{% block title %}{{ season.year }} Season — NFL Pool{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center gap-2 mb-4">
+  <a href="{% url 'pool:home' %}" class="btn btn-outline-secondary btn-sm">&larr; Seasons</a>
+  <h2 class="mb-0">{{ season.year }} Season</h2>
+  {% if season.is_test %}
+    <span class="badge bg-warning text-dark">TEST</span>
+  {% endif %}
+</div>
+
+<div class="row g-4">
+
+  <!-- Leaderboard -->
+  <div class="col-lg-5">
+    <div class="card shadow-sm">
+      <div class="card-header fw-bold">Standings</div>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-dark">
+            <tr>
+              <th>#</th>
+              <th>Player</th>
+              <th class="text-end">Points</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for player in players %}
+              <tr {% if player == request.user %}class="table-warning fw-bold"{% endif %}>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ player.username }}</td>
+                <td class="text-end">{{ player.season_points|default:"—" }}</td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="3" class="text-center text-muted py-3">No picks yet.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Weeks -->
+  <div class="col-lg-7">
+    <div class="card shadow-sm">
+      <div class="card-header fw-bold">Weeks</div>
+      <ul class="list-group list-group-flush">
+        {% for entry in week_data %}
+          {% with week=entry.week %}
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            <div>
+              <span class="fw-semibold">Week {{ week.week_number }}</span>
+              {% if week.status == 'open' %}
+                <span class="badge bg-success ms-2">Open</span>
+              {% elif week.status == 'locked' %}
+                <span class="badge bg-warning text-dark ms-2">Locked</span>
+              {% else %}
+                <span class="badge bg-secondary ms-2">Completed</span>
+              {% endif %}
+              {% if entry.user_points is not None %}
+                <span class="ms-2 text-muted small">{{ entry.user_points }} pts</span>
+              {% endif %}
+            </div>
+            <div class="d-flex gap-2">
+              {% if week.status == 'open' %}
+                <a href="{% url 'pool:picks' week.id %}" class="btn btn-primary btn-sm">Picks</a>
+              {% elif week.status == 'locked' or week.status == 'completed' %}
+                <a href="{% url 'pool:picks' week.id %}" class="btn btn-outline-secondary btn-sm">View Picks</a>
+                <a href="{% url 'pool:results' week.id %}" class="btn btn-outline-primary btn-sm">Results</a>
+              {% endif %}
+            </div>
+          </li>
+          {% endwith %}
+        {% empty %}
+          <li class="list-group-item text-muted">No weeks scheduled.</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
