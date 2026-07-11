@@ -1,6 +1,6 @@
 # Virtual environments
 venv/
-FootballPool/
+.venv/
 .env
 .env/
 
