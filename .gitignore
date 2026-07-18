@@ -19,3 +19,6 @@ __pycache__/
 staticfiles/
 *.sqlite3
 
+# Claude Code local settings (permission allowlist, machine-specific)
+.claude/
+
