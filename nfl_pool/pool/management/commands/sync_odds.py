@@ -33,28 +33,33 @@ class Command(BaseCommand):
         now = timezone.now()
 
         for raw in raw_games:
-            odds = parse_game_odds(raw)
-            game = match_game_to_db(
-                odds["home_team"],
-                odds["away_team"],
-                odds["commence_time"],
-            )
-
-            if not game:
-                self.stdout.write(
-                    f"  No match found: {odds['away_team']} @ {odds['home_team']}"
+            try:
+                odds = parse_game_odds(raw)
+                game = match_game_to_db(
+                    odds["home_team"],
+                    odds["away_team"],
+                    odds["commence_time"],
                 )
+
+                if not game:
+                    self.stdout.write(
+                        f"  No match found: {odds['away_team']} @ {odds['home_team']}"
+                    )
+                    skipped += 1
+                    continue
+
+                game.home_moneyline = odds["home_moneyline"]
+                game.away_moneyline = odds["away_moneyline"]
+                game.home_spread = odds["home_spread"]
+                game.odds_updated_at = now
+                game.save(update_fields=[
+                    "home_moneyline", "away_moneyline", "home_spread", "odds_updated_at"
+                ])
+                updated += 1
+            except (KeyError, TypeError, ValueError) as exc:
+                self.stdout.write(self.style.ERROR(f"  Skipping malformed record: {exc}"))
                 skipped += 1
                 continue
-
-            game.home_moneyline = odds["home_moneyline"]
-            game.away_moneyline = odds["away_moneyline"]
-            game.home_spread = odds["home_spread"]
-            game.odds_updated_at = now
-            game.save(update_fields=[
-                "home_moneyline", "away_moneyline", "home_spread", "odds_updated_at"
-            ])
-            updated += 1
 
         self.stdout.write(
             self.style.SUCCESS(

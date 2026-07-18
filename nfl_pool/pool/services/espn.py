@@ -39,43 +39,48 @@ def parse_games(data: dict) -> list:
     games = []
 
     for event in data.get("events", []):
-        competition = event["competitions"][0]
+        try:
+            competition = event["competitions"][0]
 
-        home = None
-        away = None
-        for competitor in competition["competitors"]:
-            entry = {
-                "name": competitor["team"]["displayName"],
-                "winner": competitor.get("winner", False),
-            }
-            if competitor["homeAway"] == "home":
-                home = entry
-            else:
-                away = entry
+            home = None
+            away = None
+            for competitor in competition["competitors"]:
+                entry = {
+                    "name": competitor["team"]["displayName"],
+                    "winner": competitor.get("winner", False),
+                }
+                if competitor["homeAway"] == "home":
+                    home = entry
+                else:
+                    away = entry
 
-        if not home or not away:
+            if not home or not away:
+                continue
+
+            status = competition.get("status", {}).get("type", {})
+            completed = status.get("completed", False)
+
+            winner = None
+            if completed:
+                if home["winner"]:
+                    winner = "home"
+                elif away["winner"]:
+                    winner = "away"
+
+            # ESPN dates are UTC ISO strings ending in Z
+            kickoff_str = event.get("date") or competition.get("date", "")
+            kickoff = datetime.fromisoformat(kickoff_str.replace("Z", "+00:00"))
+
+            games.append({
+                "espn_id": str(event["id"]),
+                "home_team": home["name"],
+                "away_team": away["name"],
+                "kickoff": kickoff,
+                "winner": winner,
+            })
+        except (KeyError, IndexError, TypeError, ValueError):
+            # One malformed event (e.g. ESPN mid-update) shouldn't drop
+            # the rest of the week's games.
             continue
-
-        status = competition.get("status", {}).get("type", {})
-        completed = status.get("completed", False)
-
-        winner = None
-        if completed:
-            if home["winner"]:
-                winner = "home"
-            elif away["winner"]:
-                winner = "away"
-
-        # ESPN dates are UTC ISO strings ending in Z
-        kickoff_str = event.get("date") or competition.get("date", "")
-        kickoff = datetime.fromisoformat(kickoff_str.replace("Z", "+00:00"))
-
-        games.append({
-            "espn_id": str(event["id"]),
-            "home_team": home["name"],
-            "away_team": away["name"],
-            "kickoff": kickoff,
-            "winner": winner,
-        })
 
     return games
