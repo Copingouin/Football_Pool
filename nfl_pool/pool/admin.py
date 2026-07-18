@@ -1,12 +1,19 @@
 import random
 from django.contrib import admin
-from .models import Season, Week, Game, Pick, Score
+from .models import Season, Week, Game, Pick, Score, SeasonParticipant
 
 
 @admin.register(Season)
 class SeasonAdmin(admin.ModelAdmin):
     list_display = ('year', 'is_test')
     list_editable = ('is_test',)
+
+
+@admin.register(SeasonParticipant)
+class SeasonParticipantAdmin(admin.ModelAdmin):
+    list_display = ('user', 'season', 'joined_at')
+    list_filter = ('season',)
+    raw_id_fields = ('user',)
 
 
 class GameInline(admin.TabularInline):

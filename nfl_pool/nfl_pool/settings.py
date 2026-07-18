@@ -161,7 +161,7 @@ STORAGES = {
 }
 
 LOGIN_URL = '/'
-LOGIN_REDIRECT_URL = '/leaderboard/'
+LOGIN_REDIRECT_URL = '/seasons/'
 
 # --- Security (production only — Railway terminates TLS at its edge proxy) ---
 if not DEBUG:

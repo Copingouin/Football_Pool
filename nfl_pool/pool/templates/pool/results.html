@@ -6,8 +6,8 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
   <h2 class="mb-0">{{ week }} — Results</h2>
-  <a href="{% url 'pool:leaderboard' %}" class="btn btn-outline-dark btn-sm">
-    &larr; Leaderboard
+  <a href="{% url 'pool:season' week.season.id %}" class="btn btn-outline-dark btn-sm">
+    &larr; Standings
   </a>
 </div>
 

@@ -3,9 +3,11 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.contrib import messages
 from django.db.models import Sum, Q
+from django.db.models.functions import Coalesce
 from django.utils import timezone
+from django.views.decorators.http import require_POST
 
-from .models import Season, Week, Game, Pick, Score
+from .models import Season, Week, Game, Pick, Score, SeasonParticipant
 from .forms import PicksForm
 
 
@@ -22,11 +24,9 @@ def home(request):
             .annotate(total=Sum('points'))
     }
 
-    # Seasons the user has at least one pick in
     joined_seasons = set(
-        Pick.objects.filter(user=request.user)
-            .values_list('week__season_id', flat=True)
-            .distinct()
+        SeasonParticipant.objects.filter(user=request.user)
+            .values_list('season_id', flat=True)
     )
 
     season_data = []
@@ -47,14 +47,17 @@ def season(request, season_id):
     """/season/<id>/ — per-season leaderboard and week list."""
     s = get_object_or_404(Season, pk=season_id)
 
-    # Leaderboard: all users who picked in this season, ranked by season total
+    # Leaderboard: everyone registered for this season, ranked by season total
+    # (registered-but-not-yet-scored players show up with 0 points).
     players = (
-        User.objects.filter(picks__week__season=s)
+        User.objects.filter(season_participations__season=s)
         .distinct()
         .annotate(
-            season_points=Sum('scores__points', filter=Q(scores__week__season=s))
+            season_points=Coalesce(
+                Sum('scores__points', filter=Q(scores__week__season=s)), 0
+            )
         )
-        .order_by('-season_points')
+        .order_by('-season_points', 'username')
     )
 
     # Weeks with the user's score and open-week flag
@@ -78,6 +81,21 @@ def season(request, season_id):
         'week_data': week_data,
     }
     return render(request, 'pool/season.html', context)
+
+
+@login_required
+@require_POST
+def register_season(request, season_id):
+    """POST /season/<id>/register/ — join a season's roster (no picks required)."""
+    season = get_object_or_404(Season, pk=season_id)
+    _, created = SeasonParticipant.objects.get_or_create(user=request.user, season=season)
+    if created:
+        messages.success(request, f"You're registered for the {season.year} season!")
+
+    open_week = season.weeks.filter(status=Week.STATUS_OPEN).first()
+    if open_week:
+        return redirect('pool:picks', week_id=open_week.id)
+    return redirect('pool:season', season_id=season.id)
 
 
 @login_required

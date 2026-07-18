@@ -38,10 +38,15 @@
           </div>
           <div class="card-footer d-flex gap-2">
             <a href="{% url 'pool:season' season.id %}" class="btn btn-outline-secondary btn-sm">Standings</a>
-            {% if entry.open_week %}
-              <a href="{% url 'pool:picks' entry.open_week.id %}" class="btn btn-sm {% if entry.joined %}btn-primary{% else %}btn-success{% endif %}">
-                {% if entry.joined %}Continue{% else %}Join{% endif %}
-              </a>
+            {% if entry.joined %}
+              {% if entry.open_week %}
+                <a href="{% url 'pool:picks' entry.open_week.id %}" class="btn btn-primary btn-sm">Continue</a>
+              {% endif %}
+            {% else %}
+              <form method="post" action="{% url 'pool:register' season.id %}" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-success btn-sm">Register</button>
+              </form>
             {% endif %}
           </div>
         </div>

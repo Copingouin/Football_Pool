@@ -19,6 +19,21 @@ class Season(models.Model):
         return f"NFL {self.year} Season{label}"
 
 
+class SeasonParticipant(models.Model):
+    """A user's registration in a season — independent of whether they've picked yet."""
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='season_participations')
+    season = models.ForeignKey(Season, on_delete=models.CASCADE, related_name='participants')
+    joined_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'season')
+        ordering = ['user__username']
+
+    def __str__(self):
+        return f"{self.user.username} — {self.season}"
+
+
 class Week(models.Model):
     STATUS_OPEN = 'open'
     STATUS_LOCKED = 'locked'
