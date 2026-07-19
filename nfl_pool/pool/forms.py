@@ -16,6 +16,7 @@ class PicksForm(forms.Form):
 
         if week:
             games = week.games.all().order_by('kickoff')
+            num_games = len(games)
             for game in games:
                 is_locked = game.id in self.locked_game_ids
 
@@ -30,7 +31,7 @@ class PicksForm(forms.Form):
                 )
 
                 self.fields[f'confidence_{game.id}'] = forms.ChoiceField(
-                    choices=[(i, str(i)) for i in range(1, 17)],
+                    choices=[(i, str(i)) for i in range(1, num_games + 1)],
                     widget=forms.Select(
                         attrs={
                             'class': 'form-select confidence-select',
@@ -47,6 +48,7 @@ class PicksForm(forms.Form):
             return cleaned_data
 
         games = self.week.games.all()
+        num_games = len(games)
         confidence_values = []
 
         for game in games:
@@ -59,7 +61,7 @@ class PicksForm(forms.Form):
                 except (ValueError, TypeError):
                     pass
 
-        # Only validate the full 1-16 uniqueness when submitting all picks at once
+        # Only validate the full 1-N uniqueness when submitting all picks at once
         # (partial saves mid-week are allowed)
         if '_submit_lock' in self.data:
             all_confs = []
@@ -70,10 +72,10 @@ class PicksForm(forms.Form):
                         all_confs.append(int(conf))
                     except (ValueError, TypeError):
                         pass
-            if sorted(all_confs) != list(range(1, 17)):
+            if sorted(all_confs) != list(range(1, num_games + 1)):
                 raise ValidationError(
-                    'Each confidence value from 1 to 16 must be used exactly once '
-                    'across all games before you can submit.'
+                    f'Each confidence value from 1 to {num_games} must be used exactly '
+                    'once across all games before you can submit.'
                 )
 
         # Always reject duplicate confidence values among unlocked picks

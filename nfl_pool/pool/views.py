@@ -174,7 +174,7 @@ def picks(request, week_id):
         'locked_game_ids': locked_game_ids,
         'user_week_locked': user_week_locked,
         'now': now,
-        'confidence_range': range(1, 17),
+        'confidence_range': range(1, len(games) + 1),
     }
     return render(request, 'pool/picks.html', context)
 
