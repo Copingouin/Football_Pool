@@ -84,6 +84,15 @@
                 <strong>{{ game.away_team }}</strong>
                 <span class="text-muted"> @ </span>
                 <strong>{{ game.home_team }}</strong>
+                {% if enable_game_news %}
+                  <button type="button"
+                          class="btn btn-sm btn-outline-secondary py-0 px-1 ms-1 game-news-btn"
+                          data-game-id="{{ game.id }}"
+                          data-matchup="{{ game.away_team }} @ {{ game.home_team }}"
+                          title="News">
+                    &#128240;
+                  </button>
+                {% endif %}
               </td>
 
               {# Odds column #}
@@ -193,6 +202,22 @@
     </p>
   {% endif %}
 </form>
+
+{% if enable_game_news %}
+<div class="modal fade" id="game-news-modal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="game-news-modal-title">News</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="game-news-modal-body">
+        <div class="text-center text-muted py-4">Loading…</div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}
@@ -240,5 +265,29 @@
       e.preventDefault();
     }
   });
+
+  // Per-game news popup (self-contained — safe to delete if it doesn't work out)
+  const newsModalEl = document.getElementById('game-news-modal');
+  if (newsModalEl) {
+    const newsModal = new bootstrap.Modal(newsModalEl);
+    const newsBody = document.getElementById('game-news-modal-body');
+    const newsTitle = document.getElementById('game-news-modal-title');
+
+    document.querySelectorAll('.game-news-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const gameId = btn.dataset.gameId;
+        newsTitle.textContent = btn.dataset.matchup;
+        newsBody.innerHTML = '<div class="text-center text-muted py-4">Loading…</div>';
+        newsModal.show();
+
+        fetch(`/game/${gameId}/news/`)
+          .then(resp => resp.ok ? resp.text() : Promise.reject())
+          .then(html => { newsBody.innerHTML = html; })
+          .catch(() => {
+            newsBody.innerHTML = '<p class="text-danger mb-0">Couldn\'t load news right now.</p>';
+          });
+      });
+    });
+  }
 </script>
 {% endblock %}

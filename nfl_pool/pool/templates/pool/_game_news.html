@@ -1,0 +1,20 @@
+{% if articles %}
+  <div class="list-group list-group-flush">
+    {% for article in articles %}
+      <a href="{{ article.link }}" target="_blank" rel="noopener"
+         class="list-group-item list-group-item-action d-flex gap-3">
+        {% if article.image %}
+          <img src="{{ article.image }}" alt="" style="width:96px;height:64px;object-fit:cover;flex-shrink:0;">
+        {% endif %}
+        <div>
+          <div class="fw-semibold">{{ article.headline }}</div>
+          {% if article.description %}
+            <div class="text-muted small">{{ article.description }}</div>
+          {% endif %}
+        </div>
+      </a>
+    {% endfor %}
+  </div>
+{% else %}
+  <p class="text-muted mb-0">No recent news found for {{ game.away_team }} @ {{ game.home_team }}.</p>
+{% endif %}
