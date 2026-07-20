@@ -59,6 +59,23 @@ class Week(models.Model):
     def is_fully_locked(self):
         return self.status in (self.STATUS_LOCKED, self.STATUS_COMPLETED)
 
+    @property
+    def is_done(self):
+        """True once every game in the week has a recorded winner."""
+        return self.games.exists() and not self.games.filter(winner__isnull=True).exists()
+
+    @property
+    def previous_week(self):
+        return Week.objects.filter(
+            season=self.season, week_number=self.week_number - 1
+        ).first()
+
+    @property
+    def waiting_on_previous_week(self):
+        """True if picks can't be entered yet because the prior week isn't done."""
+        prev = self.previous_week
+        return prev is not None and not prev.is_done
+
 
 class Game(models.Model):
     WINNER_HOME = 'home'

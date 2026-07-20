@@ -116,6 +116,15 @@ def picks(request, week_id):
         len(existing_picks) == len(games)
         and all(p.locked for p in existing_picks.values())
     )
+    previous_week_pending = (not user_week_locked) and week.waiting_on_previous_week
+
+    if request.method == 'POST' and previous_week_pending:
+        messages.error(
+            request,
+            f'You cannot enter picks for this week until Week '
+            f'{week.previous_week.week_number} is done.'
+        )
+        return redirect('pool:picks', week_id=week_id)
 
     if request.method == 'POST' and not user_week_locked:
         form = PicksForm(
@@ -173,6 +182,7 @@ def picks(request, week_id):
         'existing_picks': existing_picks,
         'locked_game_ids': locked_game_ids,
         'user_week_locked': user_week_locked,
+        'previous_week_pending': previous_week_pending,
         'now': now,
         'confidence_range': range(1, len(games) + 1),
     }
