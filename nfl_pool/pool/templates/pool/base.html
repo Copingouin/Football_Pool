@@ -5,19 +5,161 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}NFL Confidence Pool{% endblock %}</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Roboto+Mono:wght@500;700&display=swap" rel="stylesheet">
   <style>
-    body { background-color: #f8f9fa; }
-    .navbar-brand { font-weight: 700; letter-spacing: 1px; }
-    .pick-row.locked { background-color: #e9ecef; opacity: 0.8; }
-    .pick-row.correct { background-color: #d1e7dd; }
-    .pick-row.wrong { background-color: #f8d7da; }
+    :root {
+      --nfl-bg: #0a0e16;
+      --nfl-surface: #141a24;
+      --nfl-surface-2: #1b2330;
+      --nfl-border: #2a3444;
+      --nfl-text: #e7ebf2;
+      --nfl-muted: #8b95a7;
+      --nfl-accent: #33d17a;
+      --nfl-accent-dark: #1fa85c;
+      --nfl-accent-ink: #06210f;
+      --nfl-gold: #f2b632;
+      --nfl-danger: #ef4a5f;
+      --nfl-primary: #2b7fff;
+
+      /* Re-point Bootstrap's own variable chain so components that set their
+         color via var(--bs-body-color) (tables, list-groups, etc.) pick up
+         the dark theme too, not just elements that inherit `color` directly. */
+      --bs-body-color: var(--nfl-text);
+      --bs-body-bg: var(--nfl-bg);
+      --bs-border-color: var(--nfl-border);
+      --bs-emphasis-color: var(--nfl-text);
+      --bs-secondary-color: var(--nfl-muted);
+      --bs-heading-color: var(--nfl-text);
+      --bs-link-color: var(--nfl-accent);
+      --bs-link-hover-color: var(--nfl-gold);
+    }
+
+    body {
+      background-color: var(--nfl-bg);
+      background-image: radial-gradient(circle at 50% -10%, #16202f 0%, var(--nfl-bg) 55%);
+      color: var(--nfl-text);
+    }
+
+    h1, h2, h3, h4, h5, h6,
+    .navbar-brand, .card-header, .btn, .badge, thead th, .form-label {
+      font-family: 'Oswald', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      letter-spacing: .03em;
+    }
+    h1, h2, h3 { text-transform: uppercase; font-weight: 600; }
+
+    /* --- Field-stripe accent bar --- */
+    .field-stripe {
+      height: 5px;
+      background: repeating-linear-gradient(-45deg, var(--nfl-gold) 0 10px, transparent 10px 20px);
+      opacity: .55;
+    }
+
+    /* --- Navbar --- */
+    .navbar { background: linear-gradient(180deg, #101826, #0b1119) !important; }
+    .navbar-brand { font-weight: 700; text-transform: uppercase; letter-spacing: .14em; color: var(--nfl-gold) !important; }
+    .nav-link { color: var(--nfl-text) !important; font-weight: 500; }
+    .nav-link:hover { color: var(--nfl-gold) !important; }
+    .navbar-text { font-family: 'Oswald', sans-serif; letter-spacing: .05em; }
+
+    /* --- Cards / surfaces --- */
+    .card { background-color: var(--nfl-surface); border: 1px solid var(--nfl-border); color: var(--nfl-text); }
+    .card-header, .card-footer {
+      background-color: var(--nfl-surface-2); border-color: var(--nfl-border);
+      text-transform: uppercase; font-size: .82rem; letter-spacing: .06em; color: var(--nfl-muted);
+    }
+
+    /* --- Tables --- */
+    .table {
+      color: var(--nfl-text) !important; border-color: var(--nfl-border);
+      --bs-table-bg: transparent; --bs-table-color: var(--nfl-text);
+    }
+    .table > :not(caption) > * > * { border-bottom-color: var(--nfl-border); background-color: transparent; }
+    .table-hover > tbody > tr:hover > * { background-color: rgba(255,255,255,.05) !important; color: var(--nfl-text) !important; }
+    .table-dark, thead.table-dark {
+      --bs-table-bg: var(--nfl-surface-2) !important;
+      --bs-table-color: var(--nfl-gold) !important;
+      --bs-table-border-color: var(--nfl-border) !important;
+    }
+    thead th { text-transform: uppercase; font-size: .78rem; letter-spacing: .06em; }
+    .table-success { --bs-table-bg: rgba(51,209,122,.16) !important; --bs-table-color: var(--nfl-text) !important; }
+    .table-danger  { --bs-table-bg: rgba(239,74,95,.16) !important; --bs-table-color: var(--nfl-text) !important; }
+    .table-warning { --bs-table-bg: rgba(242,182,50,.18) !important; --bs-table-color: var(--nfl-text) !important; }
+    .table-secondary { --bs-table-bg: var(--nfl-surface-2) !important; --bs-table-color: var(--nfl-text) !important; }
+    .table-bordered, .table-bordered th, .table-bordered td { border-color: var(--nfl-border) !important; }
+
+    /* --- Buttons --- */
+    .btn { font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+    .btn-primary, .btn-dark, .btn-success {
+      background-color: var(--nfl-accent) !important; border-color: var(--nfl-accent) !important; color: var(--nfl-accent-ink) !important;
+    }
+    .btn-primary:hover, .btn-dark:hover, .btn-success:hover {
+      background-color: var(--nfl-accent-dark) !important; border-color: var(--nfl-accent-dark) !important; color: #fff !important;
+    }
+    .btn-outline-secondary, .btn-outline-dark { color: var(--nfl-text); border-color: var(--nfl-border); }
+    .btn-outline-secondary:hover, .btn-outline-dark:hover {
+      background-color: var(--nfl-surface-2); color: var(--nfl-gold); border-color: var(--nfl-gold);
+    }
+    .btn-outline-primary { color: var(--nfl-accent); border-color: var(--nfl-accent); }
+    .btn-outline-primary:hover { background-color: var(--nfl-accent); color: var(--nfl-accent-ink); }
+    .btn-outline-light { color: var(--nfl-text); border-color: var(--nfl-border); }
+
+    /* --- Badges --- */
+    .badge.bg-success { background-color: var(--nfl-accent) !important; color: var(--nfl-accent-ink) !important; }
+    .badge.bg-danger { background-color: var(--nfl-danger) !important; }
+    .badge.bg-warning { background-color: var(--nfl-gold) !important; }
+    .badge.bg-secondary { background-color: var(--nfl-surface-2) !important; color: var(--nfl-muted) !important; border: 1px solid var(--nfl-border); }
+    .badge.bg-primary { background-color: var(--nfl-primary) !important; }
+    .badge.bg-dark { background-color: var(--nfl-surface-2) !important; border: 1px solid var(--nfl-border); }
+    .badge-upcoming { background-color: transparent; border: 1px solid var(--nfl-gold); color: var(--nfl-gold); }
+
+    /* --- Forms --- */
+    .form-control, .form-select {
+      background-color: var(--nfl-surface-2); border-color: var(--nfl-border); color: var(--nfl-text);
+    }
+    .form-control:focus, .form-select:focus {
+      background-color: var(--nfl-surface-2); color: var(--nfl-text); border-color: var(--nfl-accent);
+      box-shadow: 0 0 0 .2rem rgba(51,209,122,.25);
+    }
+    .form-control::placeholder { color: var(--nfl-muted); }
+    .form-check-input { background-color: var(--nfl-surface-2); border-color: var(--nfl-border); }
+    .form-check-input:checked { background-color: var(--nfl-accent); border-color: var(--nfl-accent); }
+    .form-label { color: var(--nfl-muted); font-weight: 600; text-transform: uppercase; font-size: .78rem; }
+
+    /* --- List groups / modal / popover --- */
+    .list-group-item { background-color: var(--nfl-surface); border-color: var(--nfl-border); color: var(--nfl-text); }
+    .list-group-item-action:hover { background-color: var(--nfl-surface-2); color: var(--nfl-text); }
+    .modal-content { background-color: var(--nfl-surface); color: var(--nfl-text); border: 1px solid var(--nfl-border); }
+    .modal-header, .modal-footer { border-color: var(--nfl-border); }
+    .btn-close { filter: invert(1) grayscale(100%) brightness(200%); }
+    .popover { background-color: var(--nfl-surface-2); border-color: var(--nfl-border); }
+    .popover-header { background-color: var(--nfl-surface); border-color: var(--nfl-border); color: var(--nfl-gold); }
+    .popover-body { color: var(--nfl-text); }
+
+    /* --- Alerts --- */
+    .alert-info { background-color: rgba(43,127,255,.15); color: #cfe3ff; border-color: rgba(43,127,255,.3); }
+    .alert-warning { background-color: rgba(242,182,50,.15); color: var(--nfl-gold); border-color: rgba(242,182,50,.3); }
+    .alert-danger { background-color: rgba(239,74,95,.15); color: #ffb3bd; border-color: rgba(239,74,95,.3); }
+    .alert-success { background-color: rgba(51,209,122,.15); color: #a8f2c6; border-color: rgba(51,209,122,.3); }
+
+    .text-muted { color: var(--nfl-muted) !important; }
+
+    /* --- App-specific --- */
+    .pick-row.locked { background-color: rgba(255,255,255,.03); opacity: .75; }
+    .pick-row.correct { background-color: rgba(51,209,122,.14); }
+    .pick-row.wrong { background-color: rgba(239,74,95,.14); }
+    .odds-figure { font-family: 'Roboto Mono', monospace; }
+    .rank-cell { font-family: 'Roboto Mono', monospace; font-weight: 700; }
+    .rank-cell.rank-1 { color: var(--nfl-gold); }
+    .rank-cell.rank-2 { color: #c9d3e0; }
+    .rank-cell.rank-3 { color: #cd8a4e; }
   </style>
 </head>
 <body>
 
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+<nav class="navbar navbar-expand-lg navbar-dark">
   <div class="container">
-    <a class="navbar-brand" href="/">NFL Pool</a>
+    <a class="navbar-brand" href="/">🏈 NFL Pool</a>
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav">
       <span class="navbar-toggler-icon"></span>
     </button>
@@ -45,6 +187,7 @@
     </div>
   </div>
 </nav>
+<div class="field-stripe"></div>
 
 <div class="container mt-4 mb-5">
   {% for message in messages %}

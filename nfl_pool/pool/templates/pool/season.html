@@ -30,9 +30,9 @@
           <tbody>
             {% for player in players %}
               <tr {% if player == request.user %}class="table-warning fw-bold"{% endif %}>
-                <td>{{ forloop.counter }}</td>
+                <td class="rank-cell rank-{{ forloop.counter }}">{{ forloop.counter }}</td>
                 <td>{{ player.username }}</td>
-                <td class="text-end">{{ player.season_points|default:"—" }}</td>
+                <td class="text-end odds-figure">{{ player.season_points|default:"—" }}</td>
               </tr>
             {% empty %}
               <tr>
@@ -55,9 +55,11 @@
           <li class="list-group-item d-flex justify-content-between align-items-center">
             <div>
               <span class="fw-semibold">Week {{ week.week_number }}</span>
-              {% if week.status == 'open' %}
+              {% if week.display_status == 'open' %}
                 <span class="badge bg-success ms-2">Open</span>
-              {% elif week.status == 'locked' %}
+              {% elif week.display_status == 'upcoming' %}
+                <span class="badge badge-upcoming ms-2">Upcoming</span>
+              {% elif week.display_status == 'locked' %}
                 <span class="badge bg-warning text-dark ms-2">Locked</span>
               {% else %}
                 <span class="badge bg-secondary ms-2">Completed</span>
@@ -67,9 +69,11 @@
               {% endif %}
             </div>
             <div class="d-flex gap-2">
-              {% if week.status == 'open' %}
+              {% if week.display_status == 'open' %}
                 <a href="{% url 'pool:picks' week.id %}" class="btn btn-primary btn-sm">Picks</a>
-              {% elif week.status == 'locked' or week.status == 'completed' %}
+              {% elif week.display_status == 'upcoming' %}
+                <a href="{% url 'pool:picks' week.id %}" class="btn btn-outline-secondary btn-sm">Picks</a>
+              {% else %}
                 <a href="{% url 'pool:picks' week.id %}" class="btn btn-outline-secondary btn-sm">View Picks</a>
                 <a href="{% url 'pool:results' week.id %}" class="btn btn-outline-primary btn-sm">Results</a>
               {% endif %}

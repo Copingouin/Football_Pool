@@ -76,6 +76,21 @@ class Week(models.Model):
         prev = self.previous_week
         return prev is not None and not prev.is_done
 
+    @property
+    def display_status(self):
+        """
+        Auto-computed status for UI display, independent of the manually-set
+        `status` field (which defaults to 'open' and is rarely touched by an admin).
+        One of: 'completed', 'locked', 'upcoming', 'open'.
+        """
+        if self.status == self.STATUS_COMPLETED or self.is_done:
+            return self.STATUS_COMPLETED
+        if self.status == self.STATUS_LOCKED:
+            return self.STATUS_LOCKED
+        if self.waiting_on_previous_week:
+            return 'upcoming'
+        return self.STATUS_OPEN
+
 
 class Game(models.Model):
     WINNER_HOME = 'home'

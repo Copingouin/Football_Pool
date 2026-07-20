@@ -22,7 +22,7 @@
           <div class="card-body">
             {% if entry.joined %}
               <p class="mb-1 text-muted small">Your points</p>
-              <p class="fs-4 fw-bold mb-3">{{ entry.user_points|default:"0" }}</p>
+              <p class="fs-4 fw-bold mb-3 odds-figure" style="color: var(--nfl-gold);">{{ entry.user_points|default:"0" }}</p>
             {% else %}
               <p class="text-muted mb-3">You haven't joined this season yet.</p>
             {% endif %}

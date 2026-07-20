@@ -7,10 +7,11 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
   <h2 class="mb-0">{{ week }} — Your Picks</h2>
   <span class="badge fs-6
-    {% if week.status == 'open' %}bg-success
-    {% elif week.status == 'locked' %}bg-warning text-dark
+    {% if week.display_status == 'open' %}bg-success
+    {% elif week.display_status == 'upcoming' %}badge-upcoming
+    {% elif week.display_status == 'locked' %}bg-warning text-dark
     {% else %}bg-secondary{% endif %}">
-    {{ week.get_status_display }}
+    {{ week.display_status|capfirst }}
   </span>
 </div>
 
@@ -96,10 +97,10 @@
               </td>
 
               {# Odds column #}
-              <td class="text-nowrap small">
+              <td class="text-nowrap small odds-figure">
                 {% if game.has_odds %}
                   {% if game.home_spread is not None %}
-                    <div class="fw-semibold">{{ game.spread_display }}</div>
+                    <div class="fw-semibold" style="color: var(--nfl-gold);">{{ game.spread_display }}</div>
                   {% endif %}
                   <div class="text-muted">
                     {{ game.away_team|truncatechars:4 }} {{ game.away_moneyline_display }}

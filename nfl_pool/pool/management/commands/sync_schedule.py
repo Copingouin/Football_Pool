@@ -8,8 +8,8 @@ Run once before each season:
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
-from pool.models import Season, Week, Game
-from pool.services.espn import fetch_week, parse_games, NFL_REGULAR_SEASON_WEEKS
+from pool.models import Season, Week
+from pool.services.espn import fetch_week, parse_games, upsert_week_games, NFL_REGULAR_SEASON_WEEKS
 
 
 class Command(BaseCommand):
@@ -51,19 +51,9 @@ class Command(BaseCommand):
                 week_number=week_num,
             )
 
-            for g in games:
-                Game.objects.update_or_create(
-                    espn_id=g["espn_id"],
-                    defaults={
-                        "week": week,
-                        "home_team": g["home_team"],
-                        "away_team": g["away_team"],
-                        "kickoff": g["kickoff"],
-                        "winner": g["winner"],
-                    },
-                )
-                total += 1
+            count = upsert_week_games(week, games)
+            total += count
 
-            self.stdout.write(self.style.SUCCESS(f"{len(games)} games"))
+            self.stdout.write(self.style.SUCCESS(f"{count} games"))
 
         self.stdout.write(self.style.SUCCESS(f"\nSchedule sync complete — {total} games."))

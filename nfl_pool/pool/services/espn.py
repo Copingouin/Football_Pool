@@ -84,3 +84,33 @@ def parse_games(data: dict) -> list:
             continue
 
     return games
+
+
+def upsert_week_games(week, games: list) -> int:
+    """Upsert already-fetched/parsed ESPN game dicts into DB Game rows for this week."""
+    from pool.models import Game
+
+    for g in games:
+        Game.objects.update_or_create(
+            espn_id=g["espn_id"],
+            defaults={
+                "week": week,
+                "home_team": g["home_team"],
+                "away_team": g["away_team"],
+                "kickoff": g["kickoff"],
+                "winner": g["winner"],
+            },
+        )
+
+    return len(games)
+
+
+def sync_week_games(week) -> int:
+    """
+    Fetch a single week's games from ESPN and upsert them into the DB.
+    Picks up reschedules (weather delays, flex scheduling, etc.) for a week
+    that already exists — used by the admin's "Resync from ESPN" action.
+    """
+    data = fetch_week(week.season.year, week.week_number)
+    games = parse_games(data)
+    return upsert_week_games(week, games)

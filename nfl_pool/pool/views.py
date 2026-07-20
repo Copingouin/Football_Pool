@@ -34,7 +34,9 @@ def home(request):
 
     season_data = []
     for season in seasons:
-        open_week = season.weeks.filter(status=Week.STATUS_OPEN).first()
+        open_week = next(
+            (w for w in season.weeks.all() if w.display_status == Week.STATUS_OPEN), None
+        )
         season_data.append({
             'season': season,
             'user_points': user_points_by_season.get(season.id),
@@ -95,7 +97,9 @@ def register_season(request, season_id):
     if created:
         messages.success(request, f"You're registered for the {season.year} season!")
 
-    open_week = season.weeks.filter(status=Week.STATUS_OPEN).first()
+    open_week = next(
+        (w for w in season.weeks.all() if w.display_status == Week.STATUS_OPEN), None
+    )
     if open_week:
         return redirect('pool:picks', week_id=open_week.id)
     return redirect('pool:season', season_id=season.id)

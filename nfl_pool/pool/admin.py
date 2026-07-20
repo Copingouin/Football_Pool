@@ -1,6 +1,7 @@
 import random
 from django.contrib import admin
 from .models import Season, Week, Game, Pick, Score, SeasonParticipant
+from .services.espn import sync_week_games
 
 
 @admin.register(Season)
@@ -40,13 +41,32 @@ def simulate_results(modeladmin, request, queryset):
         modeladmin.message_user(request, f'{week}: simulated {count} game(s).')
 
 
+@admin.action(description='Resync schedule from ESPN (picks up reschedules/cancellations)')
+def resync_from_espn(modeladmin, request, queryset):
+    for week in queryset:
+        try:
+            count = sync_week_games(week)
+        except Exception as exc:
+            modeladmin.message_user(
+                request, f'{week}: FAILED to resync ({exc})', level='error'
+            )
+            continue
+        modeladmin.message_user(
+            request, f'{week}: resynced {count} game(s) from ESPN.'
+        )
+
+
 @admin.register(Week)
 class WeekAdmin(admin.ModelAdmin):
-    list_display = ('__str__', 'status')
+    list_display = ('__str__', 'status', 'computed_status')
     list_filter = ('season', 'status')
     list_editable = ('status',)
     inlines = [GameInline]
-    actions = [simulate_results]
+    actions = [simulate_results, resync_from_espn]
+
+    @admin.display(description='Computed status (what players see)')
+    def computed_status(self, obj):
+        return obj.display_status.capitalize()
 
 
 @admin.register(Game)
