@@ -1,0 +1,11 @@
+{% if highlights %}
+<div class="highlights-ticker mb-4" role="status">
+  <div class="highlights-ticker-label">News</div>
+  <div class="highlights-ticker-track">
+    <div class="highlights-ticker-content">
+      {% for item in highlights %}<span class="highlights-ticker-item">{{ item }}</span>{% endfor %}
+      {% for item in highlights %}<span class="highlights-ticker-item" aria-hidden="true">{{ item }}</span>{% endfor %}
+    </div>
+  </div>
+</div>
+{% endif %}

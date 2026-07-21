@@ -12,6 +12,19 @@
   {% endif %}
 </div>
 
+{% include "pool/_highlights_banner.html" %}
+
+{% if chart_datasets %}
+<div class="card shadow-sm mb-4">
+  <div class="card-header fw-bold">Season Trend — Cumulative Points</div>
+  <div class="card-body">
+    <canvas id="season-chart" height="90" aria-label="Cumulative points per player by week" role="img"></canvas>
+  </div>
+</div>
+{{ chart_labels|json_script:"chart-labels" }}
+{{ chart_datasets|json_script:"chart-datasets" }}
+{% endif %}
+
 <div class="row g-4">
 
   <!-- Leaderboard -->
@@ -88,4 +101,97 @@
   </div>
 
 </div>
+
+{% if head_to_head %}
+<div class="card shadow-sm mt-4">
+  <div class="card-header fw-bold">Head-to-Head — Weeks Won</div>
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0 text-center">
+      <thead class="table-dark">
+        <tr>
+          <th class="text-start">Player</th>
+          {% for p in head_to_head.players %}
+            <th>{{ p.username }}</th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in head_to_head.rows %}
+          <tr {% if row.player == request.user %}class="table-warning fw-bold"{% endif %}>
+            <td class="text-start fw-semibold">{{ row.player.username }}</td>
+            {% for cell in row.cells %}
+              <td class="odds-figure">{% if cell is None %}<span class="text-muted">—</span>{% else %}{{ cell }}{% endif %}</td>
+            {% endfor %}
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="card-footer small text-muted">
+    Row vs. column — weeks the row player outscored the column player, counted only over weeks both were scored.
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+{% if chart_datasets %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script>
+  const labels = JSON.parse(document.getElementById('chart-labels').textContent);
+  const rawDatasets = JSON.parse(document.getElementById('chart-datasets').textContent);
+  const inkSecondary = '#8b95a7';
+  const gridline = 'rgba(255,255,255,0.08)';
+
+  new Chart(document.getElementById('season-chart'), {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: rawDatasets.map(ds => ({
+        label: ds.label,
+        data: ds.data,
+        borderColor: ds.color,
+        backgroundColor: ds.color,
+        borderWidth: 2,
+        borderJoinStyle: 'round',
+        borderCapStyle: 'round',
+        pointRadius: 4,
+        pointBorderWidth: 2,
+        pointBorderColor: '#141a24',
+        pointBackgroundColor: ds.color,
+        tension: 0.15,
+        fill: false,
+      })),
+    },
+    options: {
+      responsive: true,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          display: rawDatasets.length > 1,
+          labels: { color: inkSecondary, usePointStyle: true, pointStyle: 'line' },
+        },
+        tooltip: {
+          backgroundColor: '#1b2330',
+          borderColor: '#2a3444',
+          borderWidth: 1,
+          titleColor: '#e7ebf2',
+          bodyColor: '#e7ebf2',
+        },
+      },
+      scales: {
+        x: {
+          ticks: { color: inkSecondary },
+          grid: { color: gridline },
+        },
+        y: {
+          ticks: { color: inkSecondary, precision: 0 },
+          grid: { color: gridline },
+          beginAtZero: true,
+        },
+      },
+    },
+  });
+</script>
+{% endif %}
 {% endblock %}

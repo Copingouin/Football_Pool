@@ -15,6 +15,13 @@
   </span>
 </div>
 
+{% if next_kickoff %}
+  <div class="mb-3 small text-muted">
+    Next kickoff locks that game in
+    <span id="kickoff-countdown" class="fw-bold odds-figure" style="color: var(--nfl-gold);" data-kickoff="{{ next_kickoff.isoformat }}">—</span>
+  </div>
+{% endif %}
+
 {% if user_week_locked %}
   <div class="alert alert-info">
     Your picks for this week are locked.
@@ -82,8 +89,10 @@
               </td>
 
               <td>
+                <img src="{{ game.away_team|team_logo }}" alt="" class="team-logo" loading="lazy">
                 <strong>{{ game.away_team }}</strong>
                 <span class="text-muted"> @ </span>
+                <img src="{{ game.home_team|team_logo }}" alt="" class="team-logo" loading="lazy">
                 <strong>{{ game.home_team }}</strong>
                 {% if enable_game_news %}
                   <button type="button"
@@ -125,6 +134,8 @@
                       {% if pick.predicted_winner == 'home' %}{{ game.home_team }}
                       {% else %}{{ game.away_team }}{% endif %}
                     </span>
+                  {% elif game_locked %}
+                    <span class="badge bg-danger" title="No pick was saved before kickoff — scores 0 for this game.">Missed</span>
                   {% else %}
                     <span class="text-muted">—</span>
                   {% endif %}
@@ -223,6 +234,30 @@
 
 {% block extra_js %}
 <script>
+  // Live countdown to the next kickoff that will lock a pick
+  const countdownEl = document.getElementById('kickoff-countdown');
+  if (countdownEl) {
+    const target = new Date(countdownEl.dataset.kickoff).getTime();
+    let timer;
+    const tick = () => {
+      const diff = target - Date.now();
+      if (diff <= 0) {
+        countdownEl.textContent = 'now';
+        clearInterval(timer);
+        return;
+      }
+      const d = Math.floor(diff / 86400000);
+      const h = Math.floor((diff % 86400000) / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      const s = Math.floor((diff % 60000) / 1000);
+      countdownEl.textContent = d > 0
+        ? `${d}d ${h}h ${m}m`
+        : `${h}h ${m}m ${s}s`;
+    };
+    tick();
+    timer = setInterval(tick, 1000);
+  }
+
   function checkDuplicates() {
     const selects = [...document.querySelectorAll('select.confidence-select')];
     const values = selects.map(s => s.value).filter(v => v !== '' && v !== '—');

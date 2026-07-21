@@ -9,10 +9,11 @@ class PicksForm(forms.Form):
     Field names are winner_<game_id> and confidence_<game_id>.
     """
 
-    def __init__(self, *args, week=None, locked_game_ids=None, **kwargs):
+    def __init__(self, *args, week=None, locked_game_ids=None, user=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.week = week
         self.locked_game_ids = set(locked_game_ids or [])
+        self.user = user
 
         if week:
             games = week.games.all().order_by('kickoff')
@@ -47,38 +48,49 @@ class PicksForm(forms.Form):
         if not self.week:
             return cleaned_data
 
-        games = self.week.games.all()
+        games = list(self.week.games.all())
         num_games = len(games)
-        confidence_values = []
 
+        # A locked game's fields are rendered `disabled`, so browsers never submit
+        # them — look up what was actually saved for it instead. A game that
+        # kicked off with no pick ever saved forfeits its confidence number
+        # entirely: there's no auto-pick, it just scores 0, and the number goes
+        # unused rather than permanently blocking the rest of the week from
+        # ever being submitted.
+        locked_existing_confidence = {}
+        if self.locked_game_ids and self.user:
+            locked_existing_confidence = dict(
+                Pick.objects.filter(
+                    user=self.user, week=self.week, game_id__in=self.locked_game_ids
+                ).values_list('game_id', 'confidence_points')
+            )
+
+        confidence_values = []
+        forfeited_count = 0
         for game in games:
             if game.id in self.locked_game_ids:
+                if game.id in locked_existing_confidence:
+                    confidence_values.append(locked_existing_confidence[game.id])
+                else:
+                    forfeited_count += 1
                 continue
             conf = cleaned_data.get(f'confidence_{game.id}')
             if conf is not None:
-                try:
-                    confidence_values.append(int(conf))
-                except (ValueError, TypeError):
-                    pass
+                confidence_values.append(int(conf))
 
-        # Only validate the full 1-N uniqueness when submitting all picks at once
-        # (partial saves mid-week are allowed)
+        # Only validate full coverage when submitting all picks at once (partial
+        # saves mid-week are allowed). Forfeited games are exempt — every other
+        # game must have a value, and none may repeat.
         if '_submit_lock' in self.data:
-            all_confs = []
-            for game in games:
-                conf = cleaned_data.get(f'confidence_{game.id}')
-                if conf is not None:
-                    try:
-                        all_confs.append(int(conf))
-                    except (ValueError, TypeError):
-                        pass
-            if sorted(all_confs) != list(range(1, num_games + 1)):
+            expected_count = num_games - forfeited_count
+            if len(confidence_values) != expected_count or len(set(confidence_values)) != expected_count:
                 raise ValidationError(
-                    f'Each confidence value from 1 to {num_games} must be used exactly '
-                    'once across all games before you can submit.'
+                    'Every game you can still pick needs a unique confidence value '
+                    'before you can submit.'
                 )
 
-        # Always reject duplicate confidence values among unlocked picks
+        # Always reject duplicate confidence values, including against games that
+        # already locked with a saved pick.
         if len(confidence_values) != len(set(confidence_values)):
             raise ValidationError(
                 'You have duplicate confidence values. Each value must be unique.'

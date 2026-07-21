@@ -15,6 +15,7 @@ from pathlib import Path
 
 import dj_database_url
 from dotenv import load_dotenv
+from django.contrib.messages import constants as message_constants
 
 load_dotenv(Path(__file__).resolve().parent.parent / '.env')
 
@@ -173,6 +174,11 @@ if not DEBUG:
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
 
+# Bootstrap uses "danger", not "error", for its red alert class.
+MESSAGE_TAGS = {
+    message_constants.ERROR: 'danger',
+}
+
 # --- NFL Pool ---
 ODDS_API_KEY = os.environ.get('ODDS_API_KEY', '')
 
@@ -180,3 +186,9 @@ ODDS_API_KEY = os.environ.get('ODDS_API_KEY', '')
 # Set ENABLE_GAME_NEWS=false on Railway to disable instantly if it misbehaves in prod,
 # without needing a code change/redeploy.
 ENABLE_GAME_NEWS = _env_bool('ENABLE_GAME_NEWS', True)
+
+# Kill switch for the "highlights" news banner (busted big picks, standings shakeups).
+# Purely computed from existing Pick/Score data, no external calls — but gated the same
+# way in case the messaging reads wrong in prod. Set ENABLE_HIGHLIGHTS=false on Railway
+# to disable instantly without a code change/redeploy.
+ENABLE_HIGHLIGHTS = _env_bool('ENABLE_HIGHLIGHTS', True)
