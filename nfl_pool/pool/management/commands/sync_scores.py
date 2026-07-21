@@ -16,32 +16,8 @@ Usage:
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
-from pool.models import Season, Week, Game, Pick, Score
+from pool.models import Season, Week, Game, recalculate_week_scores
 from pool.services.espn import fetch_week, parse_games
-
-
-def recalculate_scores(week):
-    """
-    Recompute the Score record for every user who has picks for this week.
-    Only counts picks for games that have a result.
-    """
-    picks = (
-        Pick.objects
-        .filter(week=week)
-        .select_related("game", "user")
-    )
-
-    by_user = {}
-    for pick in picks:
-        by_user.setdefault(pick.user_id, []).append(pick)
-
-    for user_id, user_picks in by_user.items():
-        total = sum(p.points_earned for p in user_picks)
-        Score.objects.update_or_create(
-            user_id=user_id,
-            week=week,
-            defaults={"points": total},
-        )
 
 
 class Command(BaseCommand):
@@ -105,7 +81,7 @@ class Command(BaseCommand):
                 updated += rows
 
             if updated:
-                recalculate_scores(week)
+                recalculate_week_scores(week)
                 # Auto-complete week when every game has a result
                 if not week.games.filter(winner__isnull=True).exists():
                     week.status = Week.STATUS_COMPLETED

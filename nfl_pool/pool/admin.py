@@ -1,6 +1,6 @@
 import random
 from django.contrib import admin
-from .models import Season, Week, Game, Pick, Score, SeasonParticipant
+from .models import Season, Week, Game, Pick, Score, ScoreHistory, SeasonParticipant
 from .services.espn import sync_week_games
 
 
@@ -91,3 +91,21 @@ class PickAdmin(admin.ModelAdmin):
 class ScoreAdmin(admin.ModelAdmin):
     list_display = ('user', 'week', 'points')
     list_filter = ('week',)
+
+
+@admin.register(ScoreHistory)
+class ScoreHistoryAdmin(admin.ModelAdmin):
+    """Read-only audit log — one row per score recalculation, never overwritten."""
+    list_display = ('user', 'week', 'points', 'recorded_at')
+    list_filter = ('week__season', 'week', 'user')
+    date_hierarchy = 'recorded_at'
+    raw_id_fields = ('user',)
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False

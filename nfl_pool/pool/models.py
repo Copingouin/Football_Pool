@@ -207,9 +207,31 @@ class Score(models.Model):
         return f"{self.user.username} — {self.week} — {self.points}pts"
 
 
+class ScoreHistory(models.Model):
+    """
+    Append-only log of score recalculations. A new row is written every time
+    recalculate_week_scores runs (game result entered/changed, ESPN resync,
+    scheduled sync_scores run) — unlike Score, rows here are never overwritten,
+    so a past score can always be looked up even after a later correction.
+    """
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='score_history')
+    week = models.ForeignKey(Week, on_delete=models.CASCADE, related_name='score_history')
+    points = models.IntegerField()
+    recorded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-recorded_at']
+        verbose_name_plural = 'score history'
+
+    def __str__(self):
+        return f"{self.user.username} — {self.week} — {self.points}pts @ {self.recorded_at:%Y-%m-%d %H:%M}"
+
+
 def recalculate_week_scores(week):
     """Recompute Score rows for every user who has picks in the given week."""
     users = User.objects.filter(picks__week=week).distinct()
+    history_rows = []
     for user in users:
         points = sum(
             pick.points_earned
@@ -220,6 +242,8 @@ def recalculate_week_scores(week):
             week=week,
             defaults={'points': points},
         )
+        history_rows.append(ScoreHistory(user=user, week=week, points=points))
+    ScoreHistory.objects.bulk_create(history_rows)
 
 
 @receiver(post_save, sender=Game)
