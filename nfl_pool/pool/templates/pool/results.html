@@ -50,7 +50,7 @@
         <span>
           Correctly called by:
           {% for pick in biggest_upset.callers %}
-            <span class="badge bg-success">{{ pick.user.username }} +{{ pick.confidence_points }}</span>
+            <span class="badge bg-success">{% with logo=pick.user|favorite_logo %}{% if logo %}<img src="{{ logo }}" alt="" class="player-icon">{% endif %}{% endwith %}{{ pick.user.username }} +{{ pick.confidence_points }}</span>
           {% endfor %}
         </span>
       {% else %}
@@ -70,6 +70,7 @@
           <th>Result</th>
           {% for player in players %}
             <th class="text-center {% if player == request.user %}table-warning{% endif %}">
+              {% with logo=player|favorite_logo %}{% if logo %}<img src="{{ logo }}" alt="" class="player-icon">{% endif %}{% endwith %}
               {{ player.username }}
             </th>
           {% endfor %}

@@ -1,0 +1,41 @@
+{% extends "pool/base.html" %}
+{% load pool_extras %}
+
+{% block title %}Your Profile — NFL Pool{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center gap-2 mb-4">
+  <a href="{% url 'pool:home' %}" class="btn btn-outline-secondary btn-sm">&larr; Seasons</a>
+  <h2 class="mb-0">Your Profile</h2>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-header fw-bold">Favorite Team</div>
+  <div class="card-body">
+    <p class="text-muted">Pick a team to use as your player icon on the leaderboard and results pages.</p>
+    <form method="post">
+      {% csrf_token %}
+      <div class="team-picker">
+        {% for radio in form.favorite_team %}
+          <label class="team-option {% if radio.data.selected %}selected{% endif %}">
+            {{ radio.tag }}
+            <span class="team-option-frame">
+              {% with logo=radio.data.value|team_logo %}
+                {% if logo %}
+                  <img src="{{ logo }}" alt="">
+                {% else %}
+                  <span class="team-option-none">🏈</span>
+                {% endif %}
+              {% endwith %}
+            </span>
+            <span class="team-option-label">{{ radio.choice_label }}</span>
+          </label>
+        {% endfor %}
+      </div>
+      <div class="d-grid mt-4">
+        <button type="submit" class="btn btn-dark btn-lg">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

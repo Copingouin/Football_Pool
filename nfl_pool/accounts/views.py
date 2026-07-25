@@ -1,8 +1,9 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth import login, logout
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib import messages
-from .forms import RegisterForm
+from .forms import ProfileForm, RegisterForm
 
 
 def home(request):
@@ -40,3 +41,19 @@ def register(request):
 def logout_view(request):
     logout(request)
     return redirect('accounts:home')
+
+
+@login_required
+def profile(request):
+    """/profile/ — pick a favorite team, shown as your player icon everywhere."""
+    prof = request.user.profile
+    if request.method == 'POST':
+        form = ProfileForm(request.POST, instance=prof)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Favorite team updated!')
+            return redirect('accounts:profile')
+    else:
+        form = ProfileForm(instance=prof)
+
+    return render(request, 'accounts/profile.html', {'form': form})

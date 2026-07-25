@@ -44,7 +44,10 @@
             {% for player in players %}
               <tr {% if player == request.user %}class="table-warning fw-bold"{% endif %}>
                 <td class="rank-cell rank-{{ forloop.counter }}">{{ forloop.counter }}</td>
-                <td>{{ player.username }}</td>
+                <td>
+                  {% with logo=player|favorite_logo %}{% if logo %}<img src="{{ logo }}" alt="" class="player-icon">{% endif %}{% endwith %}
+                  {{ player.username }}
+                </td>
                 <td class="text-end odds-figure">{{ player.season_points|default:"—" }}</td>
               </tr>
             {% empty %}
@@ -111,14 +114,17 @@
         <tr>
           <th class="text-start">Player</th>
           {% for p in head_to_head.players %}
-            <th>{{ p.username }}</th>
+            <th>{% with logo=p|favorite_logo %}{% if logo %}<img src="{{ logo }}" alt="" class="player-icon">{% endif %}{% endwith %}{{ p.username }}</th>
           {% endfor %}
         </tr>
       </thead>
       <tbody>
         {% for row in head_to_head.rows %}
           <tr {% if row.player == request.user %}class="table-warning fw-bold"{% endif %}>
-            <td class="text-start fw-semibold">{{ row.player.username }}</td>
+            <td class="text-start fw-semibold">
+              {% with logo=row.player|favorite_logo %}{% if logo %}<img src="{{ logo }}" alt="" class="player-icon">{% endif %}{% endwith %}
+              {{ row.player.username }}
+            </td>
             {% for cell in row.cells %}
               <td class="odds-figure">{% if cell is None %}<span class="text-muted">—</span>{% else %}{{ cell }}{% endif %}</td>
             {% endfor %}

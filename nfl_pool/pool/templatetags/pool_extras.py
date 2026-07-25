@@ -1,53 +1,23 @@
 from django import template
 
-register = template.Library()
+from pool.team_data import TEAM_ABBR, team_logo_url
 
-# Full team display name (as stored on Game.home_team/away_team, matching ESPN's
-# `displayName`) -> ESPN's 3-letter team code, used to build logo CDN URLs without
-# needing a DB column or a static/media pipeline.
-TEAM_ABBR = {
-    'Arizona Cardinals': 'ari',
-    'Atlanta Falcons': 'atl',
-    'Baltimore Ravens': 'bal',
-    'Buffalo Bills': 'buf',
-    'Carolina Panthers': 'car',
-    'Chicago Bears': 'chi',
-    'Cincinnati Bengals': 'cin',
-    'Cleveland Browns': 'cle',
-    'Dallas Cowboys': 'dal',
-    'Denver Broncos': 'den',
-    'Detroit Lions': 'det',
-    'Green Bay Packers': 'gb',
-    'Houston Texans': 'hou',
-    'Indianapolis Colts': 'ind',
-    'Jacksonville Jaguars': 'jax',
-    'Kansas City Chiefs': 'kc',
-    'Las Vegas Raiders': 'lv',
-    'Los Angeles Chargers': 'lac',
-    'Los Angeles Rams': 'lar',
-    'Miami Dolphins': 'mia',
-    'Minnesota Vikings': 'min',
-    'New England Patriots': 'ne',
-    'New Orleans Saints': 'no',
-    'New York Giants': 'nyg',
-    'New York Jets': 'nyj',
-    'Philadelphia Eagles': 'phi',
-    'Pittsburgh Steelers': 'pit',
-    'San Francisco 49ers': 'sf',
-    'Seattle Seahawks': 'sea',
-    'Tampa Bay Buccaneers': 'tb',
-    'Tennessee Titans': 'ten',
-    'Washington Commanders': 'wsh',
-}
+register = template.Library()
 
 
 @register.filter
 def team_logo(team_name):
     """{{ game.home_team|team_logo }} — ESPN team logo URL, or '' if unrecognized."""
-    abbr = TEAM_ABBR.get(team_name)
-    if not abbr:
+    return team_logo_url(team_name)
+
+
+@register.filter
+def favorite_logo(user):
+    """{{ player|favorite_logo }} — a user's chosen favorite-team logo URL, or '' if none set."""
+    profile = getattr(user, 'profile', None)
+    if not profile or not profile.favorite_team:
         return ''
-    return f'https://a.espncdn.com/i/teamlogos/nfl/500/scoreboard/{abbr}.png'
+    return team_logo_url(profile.favorite_team)
 
 
 @register.filter

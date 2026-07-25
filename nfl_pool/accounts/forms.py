@@ -2,6 +2,17 @@ from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 
+from .models import UserProfile
+
+
+class ProfileForm(forms.ModelForm):
+    class Meta:
+        model = UserProfile
+        fields = ['favorite_team']
+        widgets = {
+            'favorite_team': forms.RadioSelect(attrs={'class': 'visually-hidden team-option-input'}),
+        }
+
 
 class RegisterForm(UserCreationForm):
     email = forms.EmailField(required=True, widget=forms.EmailInput(attrs={'class': 'form-control'}))

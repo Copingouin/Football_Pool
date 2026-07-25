@@ -1,3 +1,4 @@
+{% load pool_extras %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -154,6 +155,29 @@
     .rank-cell.rank-1 { color: var(--nfl-gold); }
     .rank-cell.rank-2 { color: #c9d3e0; }
     .rank-cell.rank-3 { color: #cd8a4e; }
+    .player-icon { width: 20px; height: 20px; object-fit: contain; vertical-align: -4px; margin: 0 4px 0 0; border-radius: 50%; }
+
+    /* --- Favorite team picker --- */
+    .team-picker {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: .6rem;
+    }
+    .team-option {
+      display: flex; flex-direction: column; align-items: center; gap: .35rem;
+      padding: .6rem .4rem; border: 2px solid var(--nfl-border); border-radius: .5rem;
+      background-color: var(--nfl-surface-2); cursor: pointer; text-align: center;
+      transition: border-color .15s, background-color .15s;
+    }
+    .team-option:hover { border-color: var(--nfl-gold); }
+    .team-option.selected,
+    .team-option:has(input:checked) {
+      border-color: var(--nfl-accent); background-color: rgba(51,209,122,.14);
+    }
+    .team-option-frame { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; }
+    .team-option-frame img { width: 100%; height: 100%; object-fit: contain; }
+    .team-option-none { font-size: 1.6rem; opacity: .6; }
+    .team-option-label { font-size: .72rem; color: var(--nfl-muted); line-height: 1.15; }
+    .team-option.selected .team-option-label,
+    .team-option:has(input:checked) .team-option-label { color: var(--nfl-text); font-weight: 600; }
 
     /* --- Highlights news ticker --- */
     .highlights-ticker {
@@ -206,10 +230,16 @@
       <ul class="navbar-nav ms-auto">
         {% if user.is_authenticated %}
           <li class="nav-item">
-            <span class="navbar-text me-3 text-light">{{ user.username }}</span>
+            <span class="navbar-text me-3 text-light">
+              {% with logo=user|favorite_logo %}{% if logo %}<img src="{{ logo }}" alt="" class="player-icon">{% endif %}{% endwith %}
+              {{ user.username }}
+            </span>
           </li>
           <li class="nav-item">
             <a class="nav-link" href="{% url 'pool:home' %}">Seasons</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'accounts:profile' %}">Profile</a>
           </li>
           <li class="nav-item">
             <a class="nav-link" href="{% url 'accounts:logout' %}">Logout</a>

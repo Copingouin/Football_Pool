@@ -57,6 +57,7 @@ def season(request, season_id):
     players = (
         User.objects.filter(season_participations__season=s)
         .distinct()
+        .select_related('profile')
         .annotate(
             season_points=Coalesce(
                 Sum('scores__points', filter=Q(scores__week__season=s)), 0
@@ -316,14 +317,14 @@ def results(request, week_id):
         )
         return redirect('pool:picks', week_id=week_id)
 
-    all_picks = Pick.objects.filter(week=week).select_related('user', 'game')
+    all_picks = Pick.objects.filter(week=week).select_related('user', 'user__profile', 'game')
     picks_by_game = {}
     for pick in all_picks:
         picks_by_game.setdefault(pick.game_id, {})[pick.user_id] = pick
 
     players = User.objects.filter(
         picks__week=week
-    ).distinct().order_by('username')
+    ).distinct().select_related('profile').order_by('username')
 
     week_scores = {
         s.user_id: s.points
