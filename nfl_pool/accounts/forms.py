@@ -8,8 +8,12 @@ from .models import UserProfile
 class ProfileForm(forms.ModelForm):
     class Meta:
         model = UserProfile
-        fields = ['favorite_team']
+        fields = ['status', 'favorite_team']
         widgets = {
+            'status': forms.TextInput(attrs={
+                'class': 'form-control', 'maxlength': 60,
+                'placeholder': 'e.g. "Still not over the 2017 Super Bowl"',
+            }),
             'favorite_team': forms.RadioSelect(attrs={'class': 'visually-hidden team-option-input'}),
         }
 

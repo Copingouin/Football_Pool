@@ -156,6 +156,11 @@
     .rank-cell.rank-2 { color: #c9d3e0; }
     .rank-cell.rank-3 { color: #cd8a4e; }
     .player-icon { width: 20px; height: 20px; object-fit: contain; vertical-align: -4px; margin: 0 4px 0 0; border-radius: 50%; }
+    .player-status {
+      font-style: italic; font-size: .8em; color: var(--nfl-muted); margin-left: .4em;
+      display: inline-block; max-width: 220px; overflow: hidden; text-overflow: ellipsis;
+      white-space: nowrap; vertical-align: middle;
+    }
 
     /* --- Favorite team picker --- */
     .team-picker {
@@ -233,6 +238,7 @@
             <span class="navbar-text me-3 text-light">
               {% with logo=user|favorite_logo %}{% if logo %}<img src="{{ logo }}" alt="" class="player-icon">{% endif %}{% endwith %}
               {{ user.username }}
+              {% if user.profile.status %}<span class="player-status">"{{ user.profile.status }}"</span>{% endif %}
             </span>
           </li>
           <li class="nav-item">

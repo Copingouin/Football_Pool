@@ -47,6 +47,7 @@
                 <td>
                   {% with logo=player|favorite_logo %}{% if logo %}<img src="{{ logo }}" alt="" class="player-icon">{% endif %}{% endwith %}
                   {{ player.username }}
+                  {% if player.profile.status %}<span class="player-status">"{{ player.profile.status }}"</span>{% endif %}
                 </td>
                 <td class="text-end odds-figure">{{ player.season_points|default:"—" }}</td>
               </tr>

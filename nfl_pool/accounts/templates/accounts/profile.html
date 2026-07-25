@@ -9,12 +9,26 @@
   <h2 class="mb-0">Your Profile</h2>
 </div>
 
-<div class="card shadow-sm">
-  <div class="card-header fw-bold">Favorite Team</div>
-  <div class="card-body">
-    <p class="text-muted">Pick a team to use as your player icon on the leaderboard and results pages.</p>
-    <form method="post">
-      {% csrf_token %}
+<form method="post">
+  {% csrf_token %}
+
+  <div class="card shadow-sm mb-4">
+    <div class="card-header fw-bold">Status Phrase</div>
+    <div class="card-body">
+      <p class="text-muted">A short phrase shown next to your name on the leaderboard.</p>
+      <input type="text" name="{{ form.status.html_name }}" value="{{ form.status.value|default:'' }}"
+             class="form-control" maxlength="60"
+             placeholder='e.g. "Still not over the 2017 Super Bowl"'>
+      {% for error in form.status.errors %}
+        <div class="text-danger small mt-1">{{ error }}</div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="card shadow-sm">
+    <div class="card-header fw-bold">Favorite Team</div>
+    <div class="card-body">
+      <p class="text-muted">Pick a team to use as your player icon on the leaderboard and results pages.</p>
       <div class="team-picker">
         {% for radio in form.favorite_team %}
           <label class="team-option {% if radio.data.selected %}selected{% endif %}">
@@ -32,10 +46,11 @@
           </label>
         {% endfor %}
       </div>
-      <div class="d-grid mt-4">
-        <button type="submit" class="btn btn-dark btn-lg">Save</button>
-      </div>
-    </form>
+    </div>
   </div>
-</div>
+
+  <div class="d-grid mt-4">
+    <button type="submit" class="btn btn-dark btn-lg">Save</button>
+  </div>
+</form>
 {% endblock %}

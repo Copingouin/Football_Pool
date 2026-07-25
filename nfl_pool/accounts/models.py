@@ -17,6 +17,10 @@ class UserProfile(models.Model):
         max_length=100, blank=True, default='', choices=FAVORITE_TEAM_CHOICES,
         help_text="Shown as your player icon next to your name.",
     )
+    status = models.CharField(
+        max_length=60, blank=True, default='',
+        help_text="A short status phrase shown next to your name.",
+    )
 
     def __str__(self):
         return self.display_name or self.user.username
