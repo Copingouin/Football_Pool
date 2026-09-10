@@ -4,7 +4,7 @@
 {% block title %}Week {{ week.week_number }} Picks — NFL Pool{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-3">
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
   <h2 class="mb-0">{{ week }} — Your Picks</h2>
   <span class="badge fs-6
     {% if week.display_status == 'open' %}bg-success
@@ -45,7 +45,8 @@
 
   <div class="card shadow-sm">
     <div class="table-responsive">
-      <table class="table align-middle mb-0" id="picks-table">
+      <table class="table align-middle mb-0 table-mobile-cards" id="picks-table"
+             data-locked-confidences="{{ locked_confidence_points|join:',' }}">
         <thead class="table-dark">
           <tr>
             <th>Kickoff</th>
@@ -81,14 +82,14 @@
             <tr class="pick-row {% if game_locked %}locked{% endif %}"
                 data-game-id="{{ game.id }}">
 
-              <td class="text-nowrap">
+              <td class="text-nowrap" data-label="Kickoff">
                 {{ game.kickoff|date:"D M j, g:i A T" }}
                 {% if game_locked %}
                   <span class="badge bg-secondary ms-1">Locked</span>
                 {% endif %}
               </td>
 
-              <td>
+              <td data-label="Matchup">
                 <img src="{{ game.away_team|team_logo }}" alt="" class="team-logo" loading="lazy">
                 <strong>{{ game.away_team }}</strong>
                 <span class="text-muted"> @ </span>
@@ -106,7 +107,7 @@
               </td>
 
               {# Odds column #}
-              <td class="text-nowrap small odds-figure">
+              <td class="text-nowrap small odds-figure" data-label="Odds">
                 {% if game.has_odds %}
                   {% if game.home_spread is not None %}
                     <div class="fw-semibold" style="color: var(--nfl-gold);">{{ game.spread_display }}</div>
@@ -127,7 +128,7 @@
               </td>
 
               {# Winner column #}
-              <td>
+              <td data-label="Winner">
                 {% if game_locked or user_week_locked or previous_week_pending %}
                   {% if pick %}
                     <span class="badge bg-dark">
@@ -166,7 +167,7 @@
               </td>
 
               {# Confidence column #}
-              <td>
+              <td data-label="Confidence">
                 {% if game_locked or user_week_locked or previous_week_pending %}
                   {% if pick %}
                     <span class="badge bg-primary fs-6">{{ pick.confidence_points }}</span>
@@ -197,7 +198,7 @@
   </div>
 
   {% if not user_week_locked and not previous_week_pending %}
-    <div class="mt-3 d-flex gap-2 align-items-center flex-wrap">
+    <div class="mt-3 d-grid d-sm-flex gap-2 align-items-center">
       <button type="submit" name="_save" class="btn btn-outline-dark">
         Save Draft
       </button>
@@ -258,6 +259,33 @@
     timer = setInterval(tick, 1000);
   }
 
+  // Confidence values already spoken for by locked games (shown as a badge,
+  // not a select, so they never appear in the selects loop below).
+  const lockedConfidences = new Set(
+    (document.getElementById('picks-table')?.dataset.lockedConfidences || '')
+      .split(',').map(v => v.trim()).filter(Boolean)
+  );
+
+  // Hide/disable, in every select, any value already used by another select
+  // or by a locked game — so duplicates can't be picked in the first place.
+  function refreshConfidenceOptions() {
+    const selects = [...document.querySelectorAll('select.confidence-select')];
+    const allValues = selects.map(s => s.value);
+
+    selects.forEach((sel, i) => {
+      const usedElsewhere = new Set([
+        ...lockedConfidences,
+        ...allValues.filter((v, j) => j !== i && v !== ''),
+      ]);
+      [...sel.options].forEach(opt => {
+        if (opt.value === '') return;
+        const blocked = usedElsewhere.has(opt.value) && opt.value !== sel.value;
+        opt.hidden = blocked;
+        opt.disabled = blocked;
+      });
+    });
+  }
+
   function checkDuplicates() {
     const selects = [...document.querySelectorAll('select.confidence-select')];
     const values = selects.map(s => s.value).filter(v => v !== '' && v !== '—');
@@ -275,10 +303,14 @@
   }
 
   document.querySelectorAll('select.confidence-select').forEach(s => {
-    s.addEventListener('change', checkDuplicates);
+    s.addEventListener('change', () => {
+      refreshConfidenceOptions();
+      checkDuplicates();
+    });
   });
 
-  // Run on load to flag any pre-existing duplicates
+  // Run on load so pre-filled picks already narrow down the remaining options
+  refreshConfidenceOptions();
   checkDuplicates();
 
   // Warn before locking

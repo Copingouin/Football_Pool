@@ -283,6 +283,12 @@ def picks(request, week_id):
                 initial[f'confidence_{game.id}'] = pick.confidence_points
         form = PicksForm(initial=initial, week=week, locked_game_ids=locked_game_ids, user=request.user)
 
+    locked_confidence_points = [
+        existing_picks[g.id].confidence_points
+        for g in games
+        if g.id in locked_game_ids and g.id in existing_picks
+    ]
+
     context = {
         'week': week,
         'games': games,
@@ -294,6 +300,7 @@ def picks(request, week_id):
         'next_kickoff': next_kickoff,
         'now': now,
         'confidence_range': range(1, len(games) + 1),
+        'locked_confidence_points': locked_confidence_points,
         'enable_game_news': settings.ENABLE_GAME_NEWS,
     }
     return render(request, 'pool/picks.html', context)

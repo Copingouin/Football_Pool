@@ -221,6 +221,31 @@
     @media (prefers-reduced-motion: reduce) {
       .highlights-ticker-content { animation: none; overflow-x: auto; }
     }
+
+    /* --- Mobile ergonomics --- */
+    .table-responsive { -webkit-overflow-scrolling: touch; }
+
+    @media (max-width: 767.98px) {
+      /* Card-ized tables: opt in with .table-mobile-cards. Each <td> needs
+         data-label so its column heading still shows next to the value. */
+      .table-mobile-cards thead { display: none; }
+      .table-mobile-cards, .table-mobile-cards tbody,
+      .table-mobile-cards tr, .table-mobile-cards td { display: block; width: 100%; }
+      .table-mobile-cards tr {
+        margin-bottom: .9rem; border: 1px solid var(--nfl-border); border-radius: .5rem;
+        padding: .75rem; background-color: var(--nfl-surface-2);
+      }
+      .table-mobile-cards tr:last-child { margin-bottom: 0; }
+      .table-mobile-cards td {
+        border: none !important; padding: .4rem 0 !important;
+        background-color: transparent !important;
+      }
+      .table-mobile-cards td:empty { display: none; }
+      .table-mobile-cards td[data-label]::before {
+        content: attr(data-label); display: block; font-size: .7rem;
+        text-transform: uppercase; letter-spacing: .06em; color: var(--nfl-muted); margin-bottom: .2rem;
+      }
+    }
   </style>
 </head>
 <body>
