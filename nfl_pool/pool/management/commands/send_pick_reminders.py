@@ -13,6 +13,7 @@ Usage:
     python manage.py send_pick_reminders              # current year
     python manage.py send_pick_reminders --year 2025
     python manage.py send_pick_reminders --dry-run     # print instead of send
+    python manage.py send_pick_reminders --to me@example.com  # test send, real participants untouched
 """
 from django.conf import settings
 from django.core.management.base import BaseCommand
@@ -38,10 +39,16 @@ class Command(BaseCommand):
             action="store_true",
             help="Print emails instead of sending them.",
         )
+        parser.add_argument(
+            "--to",
+            default=None,
+            help="Send a single test email to this address instead of all participants.",
+        )
 
     def handle(self, *args, **options):
         year = options["year"]
         dry_run = options["dry_run"]
+        test_recipient = options["to"]
 
         try:
             season = Season.objects.get(year=year, is_test=False)
@@ -58,30 +65,34 @@ class Command(BaseCommand):
         last_done_week = next((w for w in reversed(weeks) if w.is_done), None)
         top_scorers, top_points = self._top_scorers(last_done_week)
 
-        participants = (
-            SeasonParticipant.objects.filter(season=season)
-            .select_related("user")
-            .exclude(user__email="")
-        )
-        if not participants.exists():
-            self.stdout.write("No participants with an email on file — nothing to send.")
-            return
+        if test_recipient:
+            recipients = [(test_recipient, "there")]
+        else:
+            participants = (
+                SeasonParticipant.objects.filter(season=season)
+                .select_related("user")
+                .exclude(user__email="")
+            )
+            if not participants.exists():
+                self.stdout.write("No participants with an email on file — nothing to send.")
+                return
+            recipients = [(p.user.email, p.user.username) for p in participants]
 
         connection = get_connection() if not dry_run else None
         sent = 0
-        for participant in participants:
-            user = participant.user
+        for email, username in recipients:
             message = self._build_message(
-                user, open_week, last_done_week, top_scorers, top_points
+                username, email, open_week, last_done_week, top_scorers, top_points
             )
             if dry_run:
-                self.stdout.write(f"--- {user.email} ---\n{message.subject}\n{message.body}\n")
+                self.stdout.write(f"--- {email} ---\n{message.subject}\n{message.body}\n")
             else:
                 message.connection = connection
                 message.send()
             sent += 1
 
-        self.stdout.write(self.style.SUCCESS(f"Reminder sent to {sent} participant(s)."))
+        label = "test email" if test_recipient else "participant(s)"
+        self.stdout.write(self.style.SUCCESS(f"Reminder sent to {sent} {label}."))
 
     def _top_scorers(self, week):
         """Users tied for the most points in `week`. Returns ([usernames], points)."""
@@ -96,14 +107,14 @@ class Command(BaseCommand):
         top_scorers = [s.user.username for s in scores if s.points == top_points]
         return top_scorers, top_points
 
-    def _build_message(self, user, open_week, last_done_week, top_scorers, top_points):
+    def _build_message(self, username, email, open_week, last_done_week, top_scorers, top_points):
         first_kickoff = open_week.games.order_by("kickoff").values_list("kickoff", flat=True).first()
 
         domain = settings.RAILWAY_PUBLIC_DOMAIN or "localhost:8000"
         pick_link = f"https://{domain}{reverse('pool:picks', args=[open_week.id])}"
 
         lines = [
-            f"Hi {user.username},",
+            f"Hi {username},",
             "",
             f"Week {open_week.week_number} picks are open — get them in before kickoff!",
             pick_link,
@@ -129,5 +140,5 @@ class Command(BaseCommand):
         return EmailMessage(
             subject=f"Week {open_week.week_number} picks are open",
             body=body,
-            to=[user.email],
+            to=[email],
         )
