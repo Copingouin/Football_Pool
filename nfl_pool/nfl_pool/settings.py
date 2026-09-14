@@ -182,11 +182,6 @@ MESSAGE_TAGS = {
 # --- NFL Pool ---
 ODDS_API_KEY = os.environ.get('ODDS_API_KEY', '')
 
-# Kill switch for the per-game news feature (calls ESPN's unofficial API on click).
-# Set ENABLE_GAME_NEWS=false on Railway to disable instantly if it misbehaves in prod,
-# without needing a code change/redeploy.
-ENABLE_GAME_NEWS = _env_bool('ENABLE_GAME_NEWS', True)
-
 # Kill switch for the "highlights" news banner (busted big picks, standings shakeups).
 # Purely computed from existing Pick/Score data, no external calls — but gated the same
 # way in case the messaging reads wrong in prod. Set ENABLE_HIGHLIGHTS=false on Railway

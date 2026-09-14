@@ -1,5 +1,4 @@
 from django.conf import settings
-from django.http import Http404
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
@@ -11,7 +10,6 @@ from django.views.decorators.http import require_POST
 
 from .models import Season, Week, Game, Pick, Score, SeasonParticipant
 from .forms import PicksForm
-from .services.espn_news import fetch_game_news
 
 
 @login_required
@@ -301,7 +299,6 @@ def picks(request, week_id):
         'now': now,
         'confidence_range': range(1, len(games) + 1),
         'locked_confidence_points': locked_confidence_points,
-        'enable_game_news': settings.ENABLE_GAME_NEWS,
     }
     return render(request, 'pool/picks.html', context)
 
@@ -450,16 +447,3 @@ def find_highlights(week):
                 highlights.append(f"{usernames[user_id]} just took over 1st place!")
 
     return highlights
-
-
-# --- Per-game news (self-contained feature — see ENABLE_GAME_NEWS in settings.py) ---
-
-@login_required
-def game_news(request, game_id):
-    """GET /game/<game_id>/news/ — HTML fragment of ESPN news for a game's two teams."""
-    if not settings.ENABLE_GAME_NEWS:
-        raise Http404
-
-    game = get_object_or_404(Game, pk=game_id)
-    articles = fetch_game_news(game.home_team, game.away_team)
-    return render(request, 'pool/_game_news.html', {'game': game, 'articles': articles})
