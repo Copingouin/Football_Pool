@@ -182,6 +182,22 @@ MESSAGE_TAGS = {
 # --- NFL Pool ---
 ODDS_API_KEY = os.environ.get('ODDS_API_KEY', '')
 
+# --- Email (used by the send_pick_reminders cron command) ---
+# Gmail SMTP: EMAIL_HOST_USER is the sending Gmail address, EMAIL_HOST_PASSWORD is a
+# 16-character Google Account App Password (not the normal login password — requires
+# 2FA enabled on the account). Falls back to console output when unset, so local dev
+# never needs real credentials.
+if os.environ.get('EMAIL_HOST_USER'):
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
+    EMAIL_PORT = int(os.environ.get('EMAIL_PORT', '587'))
+    EMAIL_USE_TLS = _env_bool('EMAIL_USE_TLS', True)
+    EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
+    EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
+    DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER)
+else:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
 # Kill switch for the "highlights" news banner (busted big picks, standings shakeups).
 # Purely computed from existing Pick/Score data, no external calls — but gated the same
 # way in case the messaging reads wrong in prod. Set ENABLE_HIGHLIGHTS=false on Railway
