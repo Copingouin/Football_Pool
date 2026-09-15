@@ -164,6 +164,13 @@ STORAGES = {
 LOGIN_URL = '/'
 LOGIN_REDIRECT_URL = '/seasons/'
 
+# Keep players logged in for the whole season instead of Django's 2-week default.
+# SESSION_SAVE_EVERY_REQUEST slides the expiry forward on each visit, so anyone
+# checking in at least once a year never gets bounced back to the login page.
+SESSION_COOKIE_AGE = 60 * 60 * 24 * 365  # 1 year
+SESSION_SAVE_EVERY_REQUEST = True
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+
 # --- Security (production only — Railway terminates TLS at its edge proxy) ---
 if not DEBUG:
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
