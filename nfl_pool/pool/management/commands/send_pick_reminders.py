@@ -15,6 +15,8 @@ Usage:
     python manage.py send_pick_reminders --dry-run     # print instead of send
     python manage.py send_pick_reminders --to me@example.com  # test send, real participants untouched
 """
+import time
+
 from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.core.mail import EmailMessage, get_connection
@@ -78,7 +80,11 @@ class Command(BaseCommand):
                 return
             recipients = [(p.user.email, p.user.username) for p in participants]
 
-        connection = get_connection() if not dry_run else None
+        connection = None
+        if not dry_run:
+            connection = get_connection()
+            self._open_connection_with_retry(connection)
+
         sent = 0
         for email, username in recipients:
             message = self._build_message(
@@ -93,6 +99,27 @@ class Command(BaseCommand):
 
         label = "test email" if test_recipient else "participant(s)"
         self.stdout.write(self.style.SUCCESS(f"Reminder sent to {sent} {label}."))
+
+    def _open_connection_with_retry(self, connection, attempts=3, delay=5):
+        """
+        Ephemeral cron containers sometimes aren't done bringing up outbound
+        networking the instant the process starts, so the first SMTP connect
+        can fail with "Network is unreachable" — retry past that cold-start
+        race instead of failing the whole run over a transient blip.
+        """
+        for attempt in range(1, attempts + 1):
+            try:
+                connection.open()
+                return
+            except OSError as exc:
+                if attempt == attempts:
+                    raise
+                self.stdout.write(
+                    self.style.WARNING(
+                        f"SMTP connect attempt {attempt}/{attempts} failed ({exc}), retrying..."
+                    )
+                )
+                time.sleep(delay)
 
     def _top_scorers(self, week):
         """Users tied for the most points in `week`. Returns ([usernames], points)."""
