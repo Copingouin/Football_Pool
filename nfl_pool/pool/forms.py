@@ -3,6 +3,16 @@ from django.core.exceptions import ValidationError
 from .models import Pick, Game
 
 
+def forfeited_confidence_values(num_games, locked_values, forfeited_count):
+    """
+    A missed game (kicked off with no pick) burns the highest confidence value
+    still unused, so a no-show can't keep their top numbers for later games.
+    Miss one game in a 16-game week and 16 is gone; miss two and 15 goes too.
+    """
+    available = sorted(set(range(1, num_games + 1)) - set(locked_values), reverse=True)
+    return set(available[:forfeited_count])
+
+
 class PicksForm(forms.Form):
     """
     Dynamically generated form: one winner + one confidence field per game in the week.
@@ -77,6 +87,20 @@ class PicksForm(forms.Form):
             conf = cleaned_data.get(f'confidence_{game.id}')
             if conf is not None:
                 confidence_values.append(int(conf))
+
+        forfeited_values = forfeited_confidence_values(
+            num_games, confidence_values, forfeited_count
+        )
+        if any(
+            int(cleaned_data[f'confidence_{g.id}']) in forfeited_values
+            for g in games
+            if g.id not in self.locked_game_ids and cleaned_data.get(f'confidence_{g.id}')
+        ):
+            raise ValidationError(
+                'You missed a game, so its confidence value is forfeited: '
+                + ', '.join(str(v) for v in sorted(forfeited_values, reverse=True))
+                + ' can no longer be used this week.'
+            )
 
         # Only validate full coverage when submitting all picks at once (partial
         # saves mid-week are allowed). Forfeited games are exempt — every other

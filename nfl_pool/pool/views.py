@@ -9,7 +9,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from .models import Season, Week, Game, Pick, Score, SeasonParticipant
-from .forms import PicksForm
+from .forms import PicksForm, forfeited_confidence_values
 
 
 @login_required
@@ -139,11 +139,12 @@ CHART_PALETTE = [
 
 def build_season_chart(season, players):
     """Cumulative points per player by week, for the season trend chart."""
-    week_numbers = list(season.weeks.order_by('week_number').values_list('week_number', flat=True))
-
     points_by_user = {}
     for row in Score.objects.filter(week__season=season).values('user_id', 'week__week_number', 'points'):
         points_by_user.setdefault(row['user_id'], {})[row['week__week_number']] = row['points']
+
+    # Only weeks that have been scored — future weeks would just flatten every line.
+    week_numbers = sorted({wn for per_week in points_by_user.values() for wn in per_week})
 
     color_by_user = {
         user.id: CHART_PALETTE[i % len(CHART_PALETTE)]
@@ -286,6 +287,13 @@ def picks(request, week_id):
         for g in games
         if g.id in locked_game_ids and g.id in existing_picks
     ]
+    missed_count = sum(
+        1 for g in games if g.id in locked_game_ids and g.id not in existing_picks
+    )
+    # Burned values are hidden from the dropdowns just like locked ones.
+    locked_confidence_points += sorted(forfeited_confidence_values(
+        len(games), locked_confidence_points, missed_count
+    ))
 
     context = {
         'week': week,
