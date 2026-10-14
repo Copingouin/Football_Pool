@@ -33,7 +33,7 @@ def parse_games(data: dict) -> list:
         home_team (str),
         away_team (str),
         kickoff (timezone-aware datetime),
-        winner (None | 'home' | 'away'),
+        winner (None | 'home' | 'away' | 'tie'),
     }
     """
     games = []
@@ -66,6 +66,9 @@ def parse_games(data: dict) -> list:
                     winner = "home"
                 elif away["winner"]:
                     winner = "away"
+                else:
+                    # Completed with no winner flagged = the game ended in a draw
+                    winner = "tie"
 
             # ESPN dates are UTC ISO strings ending in Z
             kickoff_str = event.get("date") or competition.get("date", "")

@@ -92,6 +92,7 @@
               {% if game.winner %}
                 <span class="badge bg-dark">
                   {% if game.winner == 'home' %}{{ game.home_team }}
+                  {% elif game.winner == 'tie' %}Tie
                   {% else %}{{ game.away_team }}{% endif %}
                 </span>
               {% else %}

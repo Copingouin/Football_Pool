@@ -95,9 +95,12 @@ class Week(models.Model):
 class Game(models.Model):
     WINNER_HOME = 'home'
     WINNER_AWAY = 'away'
+    # A draw: every pick on the game counts as correct.
+    WINNER_TIE = 'tie'
     WINNER_CHOICES = [
         (WINNER_HOME, 'Home'),
         (WINNER_AWAY, 'Away'),
+        (WINNER_TIE, 'Tie'),
     ]
 
     week = models.ForeignKey(Week, on_delete=models.CASCADE, related_name='games')
@@ -184,8 +187,8 @@ class Pick(models.Model):
     @property
     def is_correct(self):
         return (
-            self.game.winner is not None
-            and self.predicted_winner == self.game.winner
+            self.game.winner == Game.WINNER_TIE
+            or (self.game.winner is not None and self.predicted_winner == self.game.winner)
         )
 
     @property

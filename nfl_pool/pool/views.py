@@ -373,7 +373,7 @@ def find_biggest_upset(games, picks_by_game):
     """
     candidates = []
     for game in games:
-        if not game.winner or not game.has_odds:
+        if not game.winner or game.winner == 'tie' or not game.has_odds:
             continue
         winner_moneyline = game.home_moneyline if game.winner == 'home' else game.away_moneyline
         if winner_moneyline is not None and winner_moneyline > 0:
